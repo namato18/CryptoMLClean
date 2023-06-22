@@ -11,6 +11,11 @@ library(chron)
 
 readRenviron(".Renviron")
 Sys.setenv(TZ='UTC')
+Sys.setenv(
+  "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
+  "AWS_SECRET_ACCESS_KEY" = "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",
+  "AWS_DEFAULT_REGION" = "us-east-1"
+)
 Sys.getenv()
 #################################################################################################################
 #################################################################################################################
@@ -107,6 +112,12 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
 # outcome = readRDS(paste0("bsts/outcome_",'ETHUSD','4hour',"1",".rds"))
 # test = readRDS(paste0("bsts/test_",'ETHUSD','4hour',"1",".rds"))
 # train = readRDS(paste0("bsts/train_",'ETHUSD','4hour',"1",".rds"))
+  
+# df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("df_",Symbol,Timeframe,".rds")) 
+# sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
+# outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
+# test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
+# # train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
 
   
 df = readRDS(paste0("bsts/df_",Symbol,Timeframe,".rds"))
@@ -121,6 +132,7 @@ outcome.test = outcome[!sample.split]
 
 assign('train',train,.GlobalEnv)
 
+# bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 bst = readRDS(paste0("bsts/bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
 # bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
@@ -326,23 +338,25 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     
     
     
-    predictions.df.pos = data.frame("Coin" = rep(toupper(Symbols[i]),15),
-                                "Price Change" = 1:15,
-                                "Confidence.Score.HIT.TARGET" = rep(NA,15),
-                                "Confidence.Score.MISS.TARGET" = rep(NA,15),
-                                "Signal" = rep("DON'T BUY SIGNAL",15))
-    predictions.df.neg = data.frame("Coin" = rep(toupper(Symbols[i]),15),
-                                "Price Change" = -5:-1,
-                                "Confidence.Score.HIT.TARGET" = rep(NA,5),
-                                "Confidence.Score.MISS.TARGET" = rep(NA,5),
-                                "Signal" = rep("DON'T BUY SIGNAL",5))
+    predictions.df.pos = data.frame("Coin" = rep(toupper(Symbols[i]),2),
+                                "Price Change" = 1:2,
+                                "Confidence.Score.HIT.TARGET" = rep(NA,2),
+                                "Confidence.Score.MISS.TARGET" = rep(NA,2),
+                                "Signal" = rep("DON'T BUY SIGNAL",2))
+    predictions.df.neg = data.frame("Coin" = rep(toupper(Symbols[i]),2),
+                                "Price Change" = -2:-1,
+                                "Confidence.Score.HIT.TARGET" = rep(NA,2),
+                                "Confidence.Score.MISS.TARGET" = rep(NA,2),
+                                "Signal" = rep("DON'T BUY SIGNAL",2))
     
     predictions.pos = c()
     predictions.neg = c()
-    for(j in 1:15){
+    for(j in 1:2){
       # bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
       
-      bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
+      # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
+      bst = readRDS(paste0("bsts/bst_",Symbols[i],Timeframe,j,".rds"))
+      
       df = as.matrix(df)
       predict.next = predict(bst, df)
       predictions.pos = c(predictions.pos,predict.next)
@@ -467,8 +481,8 @@ predict_week = function(symbol, timeframe){
 
   # symbol = 'BTC-USD'
   # timeframe = 'daily'
-  bst = readRDS(paste0('bsts_T/bst_T_',tolower(symbol),timeframe,'.rds'))
-
+  # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",symbol,Timeframe,TargetIncreasePercent,".rds"))
+  bst = readRDS(paste0('bsts/bst_',symbol,Timeframe,TargetIncreasePercent,".rds"))
   
   # xgb_model$bestTune
   

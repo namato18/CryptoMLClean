@@ -6,6 +6,8 @@ library(ggplot2)
 library(DT)
 library(shinycssloaders)
 library(plotly)
+library(aws.s3)
+
 
 str1 = readRDS('tickers/str1')
 str2 = readRDS('tickers/str2')
