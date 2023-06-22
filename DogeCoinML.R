@@ -113,18 +113,18 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
 # test = readRDS(paste0("bsts/test_",'ETHUSD','4hour',"1",".rds"))
 # train = readRDS(paste0("bsts/train_",'ETHUSD','4hour',"1",".rds"))
   
-# df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("df_",Symbol,Timeframe,".rds")) 
-# sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
-# outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
-# test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
-# # train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds")) 
+df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("df_",Symbol,Timeframe,".rds"))
+sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+# train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
   
-df = readRDS(paste0("bsts/df_",Symbol,Timeframe,".rds"))
-sample.split = readRDS(paste0("bsts/sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-outcome = readRDS(paste0("bsts/outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-test = readRDS(paste0("bsts/test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-train = readRDS(paste0("bsts/train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+# df = readRDS(paste0("bsts/df_",Symbol,Timeframe,".rds"))
+# sample.split = readRDS(paste0("bsts/sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+# outcome = readRDS(paste0("bsts/outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+# test = readRDS(paste0("bsts/test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+# train = readRDS(paste0("bsts/train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
 outcome.train = outcome[sample.split]
 outcome.test = outcome[!sample.split]
@@ -132,8 +132,8 @@ outcome.test = outcome[!sample.split]
 
 assign('train',train,.GlobalEnv)
 
-# bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-bst = readRDS(paste0("bsts/bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+# bst = readRDS(paste0("bsts/bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
 # bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
 
@@ -354,16 +354,16 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     for(j in 1:2){
       # bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
       
-      # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
-      bst = readRDS(paste0("bsts/bst_",Symbols[i],Timeframe,j,".rds"))
+      bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
+      # bst = readRDS(paste0("bsts/bst_",Symbols[i],Timeframe,j,".rds"))
       
       df = as.matrix(df)
       predict.next = predict(bst, df)
       predictions.pos = c(predictions.pos,predict.next)
     }
-    # for(j in -5:-1){
+    # for(j in -2:-1){
     #   # bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
-    #   
+    # 
     #   bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
     #   df = as.matrix(df)
     #   predict.next = predict(bst, df)
@@ -407,7 +407,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
 
 
 predict_week = function(symbol, timeframe){
-  # symbol = 'REEF-USD'
+  # symbol = 'btcusdt'
   # timeframe = 'daily'
   data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = '6fbd6ce7c9e035489f6238bfab127fcedbe34ac2', periodicity = timeframe))
   # data = data.frame(getSymbols(symbol, auto.assign = FALSE, periodicity = timeframe))
@@ -481,8 +481,10 @@ predict_week = function(symbol, timeframe){
 
   # symbol = 'BTC-USD'
   # timeframe = 'daily'
-  # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",symbol,Timeframe,TargetIncreasePercent,".rds"))
-  bst = readRDS(paste0('bsts/bst_',symbol,Timeframe,TargetIncreasePercent,".rds"))
+  # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",'btcusdt','daily',".rds"))
+  
+  bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",symbol,timeframe,".rds"))
+  # bst = readRDS(paste0('bsts/bst_',symbol,Timeframe,TargetIncreasePercent,".rds"))
   
   # xgb_model$bestTune
   
@@ -503,15 +505,28 @@ predict_week = function(symbol, timeframe){
   # x = round(x, digits = 0)
   x = cbind(x, times)
   x$times = as.Date(x$times)
-  
 
+if(timeframe == 'daily'){
   plot.out = ggplot(data = x, aes(x = times)) + 
     geom_line(aes(y = data_y), color = "blue") +
     geom_line(aes(y = predicted_y), color = "red") +
     xlab("Date") +
     ylab("Price") +
-    ggtitle(paste0("Predicted Stock Price for ",symbol))
-  
+    ggtitle(paste0("Predicted Stock Price for ",symbol)) +
+    scale_x_date(date_breaks = "1 day", date_labels =  "%d %B") +
+    theme(axis.text.x=element_text(angle=60, hjust=1))
+}else{
+  plot.out = ggplot(data = x, aes(x = times)) + 
+    geom_line(aes(y = data_y), color = "blue") +
+    geom_line(aes(y = predicted_y), color = "red") +
+    xlab("Date") +
+    ylab("Price") +
+    ggtitle(paste0("Predicted Stock Price for ",symbol)) +
+    scale_x_date(date_breaks = "1 week", date_labels =  "%d %B") +
+    theme(axis.text.x=element_text(angle=60, hjust=1))
+}
+
+
   return(plot.out)
 }
 

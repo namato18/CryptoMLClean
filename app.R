@@ -402,7 +402,7 @@ server <- function(input, output, session) {
   observeEvent(input$action5, {
     showModal(modalDialog("Generating predictions...", footer = NULL))
 
-    output$nextWeekOutput = renderPlot(predict_week(input$selectNextWeek, input$selectTimeFrame))
+    output$nextWeekOutput = renderPlot(predict_week(tolower(input$selectNextWeek), input$selectTimeFrame))
     on.exit(removeModal())
     
   })
