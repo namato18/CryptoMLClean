@@ -8,9 +8,10 @@ library(shinycssloaders)
 library(plotly)
 library(aws.s3)
 
+# YFDAI COCO
 
-str1 = readRDS('tickers/str1')
-str2 = readRDS('tickers/str2')
+str1 = readRDS('tickers/str1.rds')
+str2 = readRDS('tickers/str2.rds')
 
 checkbox_list = setNames(str1, str1)
 
