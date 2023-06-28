@@ -14,11 +14,11 @@ binance::market_ping()
 df = binance::market_average_price('DOGEUSDT')
 df$price
 
-spot_new_order(
+x = spot_new_order(
   order_type = "MARKET",
   symbol = "DOGEUSDT",
   side = "BUY",
-  quantity = 200
+  quantity = 200,
 )
 
 
@@ -28,3 +28,13 @@ spot_new_order(
   side = "SELL",
   quantity = 199
   )
+
+spot_new_order(
+  order_type = 'LIMIT',
+  symbol = 'BTCUSDT',
+  side = 'SELL',
+  quantity = 100,
+  price = 20000,
+  time_in_force = 'GTC',
+  test = TRUE
+)

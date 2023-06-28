@@ -7,13 +7,24 @@ library(DT)
 library(shinycssloaders)
 library(plotly)
 library(aws.s3)
+library(shinyWidgets)
+library(shinyalert)
+library(binance)
+library(purrr)
+secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
 
-# YFDAI COCO
+binance::authenticate(key = api_key,secret = secret)
+
+binance::base_url("https://api.binance.us")
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
+coin_decimals = readRDS('coin_decimals.rds')
 
 checkbox_list = setNames(str1, str1)
+
+possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 
 
 # Define UI
@@ -29,11 +40,12 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem(text = "Overview/Backtesting", tabName = "create", icon = icon("house")),
-      #menuItem("Predict Tomorrow", tabName = "predict"),
       menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
       menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
-      menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload'))
+      menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
+      menuItem("Binance", tabName = "binance", icon = icon('sack-dollar'))
       
+
       # menuItem("Most Likely Outcome", tabName = "likely")
       
     )
@@ -289,6 +301,55 @@ ui <- dashboardPage(
                 ),
                 plotOutput("nextWeekOutput")
               )
+      ),
+      
+      tabItem(tabName = "binance",
+              fluidRow(
+                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                strong(h1("Binance Integration")),
+                box(width=10,
+                    paste0("This tab offers you the capability of performing trades on Binance directly through this interface."),
+                ),
+                box(title = "Inputs", status = "primary", solidHeader = TRUE,
+                    selectInput('selectCoinBinance', "Select a Coin", choices = checkbox_list, selected = 'BTCUSDT'),
+                    br(),
+                    selectInput('selectTypeBinance', 'Market or Limit', choices = list('Market' = 'MARKET',
+                                                                                "Limit" = 'LIMIT'),
+                                selected = 'Market'),
+                    br(),
+                    selectInput('selectSideBinance', 'Buy or Sell', choices = list("Buy" = "BUY",
+                                                                            "Sell" = "SELL"),
+                                selected = 'Buy'),
+                    br(),
+                    sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                    br(),
+                    sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
+                    br(),
+                    numericInput("tradeQuantity", "Quantity", value = 0, min = 0, step = 0.1),
+                    textOutput('decimalsAllowed'),
+                    br(),
+                    sliderInput('percentSliderBinance', 'Percentage of USDT balance',value = 0,min = 0, max = 100, step = 0.1)
+                ),
+                box(title = "Live Price", status = "primary", solidHeader = TRUE,
+                    actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
+                    br(),
+                    br(),
+                    textOutput('livePrice')
+                ),
+                box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
+                  dataTableOutput('spotAccountBalances')
+                ),
+                actionBttn(inputId = 'submitBinance',
+                           label = 'Submit',
+                           icon = icon('money-bill-trend-up'),
+                           style = 'pill',
+                           color = 'warning',
+                           size = 'lg',
+                           block = TRUE),
+                br(),
+
+
+              )
       )
     )
   )
@@ -302,6 +363,9 @@ server <- function(input, output, session) {
   # Read in functions
   source("DogeCoinML.R")
   
+  output$decimalsAllowed = renderText(paste0(coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance], " decimal places allowed."))
+  output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+  output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
   output$timeRemaining = renderText(paste0("Please note there is ",getTimeRemaining(input$timeframePredict)," before the current candle closes! displayed predictions are for the current candle!"))
   output$TVPrediction = NULL
   
@@ -427,6 +491,61 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(session = session, 'checkGroup',choices = checkbox_list, selected = checkbox_list)
     
   })
+  
+  observeEvent(input$getLivePrice, {
+    output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
+  })
+  
+  observeEvent(input$submitBinance, {
+    x = possibly_spot_new_order(
+      order_type = input$selectTypeBinance,
+      symbol = input$selectCoinBinance,
+      side = input$selectSideBinance,
+      quantity = input$tradeQuantity,
+    )
+    if(x == 'ERROR'){
+      shinyalert("Order Not Placed",
+                 "Check to see if you used to many decimals or if the minimum order requirements have not been met!",
+                 type = 'error')
+    }else{
+      shinyalert("Success",
+                 "Your order was successfully placed!",
+                 type = 'success')
+    }
+
+    output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+  })
+  
+  observeEvent(input$percentSliderBinance, {
+    current_balance = spot_account_balances()
+    free_usdt = current_balance$free[current_balance$asset == 'USDT']
+    percentage = (input$percentSliderBinance / 100)
+    quantity_usdt = free_usdt * percentage
+    
+    current_coin_price = round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4)
+    quantity_coin = round(quantity_usdt / current_coin_price, digits = 0)
+    updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
+  })
+  
+  # observeEvent(input$tradeQuantity, {
+  #   quantity = input$tradeQuantity
+  #   current_balance = spot_account_balances()
+  #   free_usdt = current_balance$free[current_balance$asset == 'USDT']
+  #   current_coin_price = round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4)
+  #   
+  #   quantity.price = quantity * current_coin_price
+  #   percent.of.free = quantity.price / free_usdt * 100
+  #   
+  #   if(percent.of.free > 100){
+  #     updateSliderInput(session = session, inputId = 'percentSliderBinance', label='Percentage of USDT balance',value = 10,min = 0, max = 100, step = 0.1 )
+  #   }else{
+  #     updateSliderInput(session = session, inputId = 'percentSliderBinance', label='Percentage of USDT balance',value = percent.of.free,min = 0, max = 100, step = 0.1 )
+  #     
+  #   }
+  #   
+  #   
+  # })
+  
 
 }
 
