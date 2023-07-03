@@ -113,10 +113,10 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
 # test = readRDS(paste0("bsts/test_",'ETHUSD','4hour',"1",".rds"))
 # train = readRDS(paste0("bsts/train_",'ETHUSD','4hour',"1",".rds"))
   
-df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("df_",Symbol,Timeframe,".rds"))
-sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("df_",Symbol,Timeframe,".rds"))
+sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 # train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
   
@@ -132,7 +132,7 @@ outcome.test = outcome[!sample.split]
 
 assign('train',train,.GlobalEnv)
 
-bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 # bst = readRDS(paste0("bsts/bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
 # bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
@@ -354,7 +354,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     for(j in 1:2){
       # bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
       
-      bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
+      bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
       # bst = readRDS(paste0("bsts/bst_",Symbols[i],Timeframe,j,".rds"))
       
       df = as.matrix(df)

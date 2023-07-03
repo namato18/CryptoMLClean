@@ -1,22 +1,33 @@
 library(shiny)
 library(shinydashboard)
 library(dashboardthemes)
-library(stringr)
 library(ggplot2)
 library(DT)
 library(shinycssloaders)
-library(plotly)
 library(aws.s3)
+library(plotly)
 library(shinyWidgets)
 library(shinyalert)
 library(binance)
 library(purrr)
-secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+library(shinymanager)
+# MINE
+# secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+# api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+
+credentials <- data.frame(
+  user = c('gentlemam','nick',"shiny", "shinymanager"),
+  password = c("gentlemam1234","123","azerty", "12345"),
+  stringsAsFactors = FALSE
+)
+
+#Gentlemam
+secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
 
 binance::authenticate(key = api_key,secret = secret)
 
-binance::base_url("https://api.binance.us")
+# binance::base_url("https://api.binance.us")
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -28,7 +39,7 @@ possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 
 
 # Define UI
-ui <- dashboardPage(
+ui <- secure_app(dashboardPage(
   dashboardHeader(title = shinyDashboardLogo(
     theme = "poor_mans_flatly",
     boldText = "Crypto Currency",
@@ -43,7 +54,8 @@ ui <- dashboardPage(
       menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
       menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
       menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
-      menuItem("Binance", tabName = "binance", icon = icon('sack-dollar'))
+      menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
+      menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
       
 
       # menuItem("Most Likely Outcome", tabName = "likely")
@@ -57,6 +69,8 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "create",
               fluidRow(
+                tags$h2("My secure application"),
+                verbatimTextOutput("auth_output"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
                 #        <input type="hidden" name="cmd" value="_s-xclick">
@@ -321,10 +335,10 @@ ui <- dashboardPage(
                                                                             "Sell" = "SELL"),
                                 selected = 'Buy'),
                     br(),
-                    sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
-                    br(),
-                    sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
-                    br(),
+                    # sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                    # br(),
+                    # sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
+                    # br(),
                     numericInput("tradeQuantity", "Quantity", value = 0, min = 0, step = 0.1),
                     textOutput('decimalsAllowed'),
                     br(),
@@ -347,18 +361,75 @@ ui <- dashboardPage(
                            size = 'lg',
                            block = TRUE),
                 br(),
+                dataTableOutput('binancePredictionTable')
 
 
               )
-      )
+      ),
+      tabItem(tabName = "automation",
+              fluidRow(
+                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                strong(h1("Binance Automation")),
+                box(width=10,
+                    paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
+                ),
+                box(title = "Inputs", status = "primary", solidHeader = TRUE,width=12,
+                  selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("4 Hour" = "4hour",
+                                                                               "8 Hour" = "8hour",
+                                                                               "1 Day" = "1day",
+                                                                               "1 Week" = "7day",
+                                                                               "1 Month" = '1month')),
+                  br(),
+                  selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = TRUE),
+                  br(),
+                  sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 1, max = 15, value = 1, step = 1),
+                  br(),
+                  sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
+                  br(),
+                  sliderInput("volumeCheckAutomation", "Volume (5min before candle start) Should be More Than Buy Amount By:", min = 1, max = 100, step = 1, value = 50)
+                  
+                  
+                ),
+                actionBttn(inputId = 'submitBinanceAutomation',
+                           label = 'Begin Automation',
+                           icon = icon('robot'),
+                           style = 'pill',
+                           color = 'success',
+                           size = 'lg',
+                           block = TRUE),
+                br(),
+                actionBttn(inputId = 'cancelBinanceAutomation',
+                           label = 'Cancel Automation',
+                           icon = icon('robot'),
+                           style = 'pill',
+                           color = 'danger',
+                           size = 'lg',
+                           block = TRUE),
+                br(),
+                box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=6,
+                  
+                ),
+                box(title = "Automated Trades Placed", status = "primary", solidHeader = TRUE,width=6,
+                    
+                )
+              ))
     )
   )
   
   
 )
+)
 
 # Define server logic
 server <- function(input, output, session) {
+  
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+  
+  output$auth_output <- renderPrint({
+    reactiveValuesToList(res_auth)
+  })
 # .GlobalEnv = environment()
   # Read in functions
   source("DogeCoinML.R")
@@ -461,6 +532,7 @@ server <- function(input, output, session) {
       formatStyle("Signal",
                   backgroundColor = styleEqual(c("DON'T BUY SIGNAL", "BUY SIGNAL"), c('darkred','lightgreen')))
     output$multipleOutput = renderDataTable(dt.colored)
+    output$binancePredictionTable = renderDataTable(dt.colored)
     output$candlestickPlot = renderPlotly(createCandlePlot(input$candlestickInput))
   })
 
