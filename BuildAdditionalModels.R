@@ -14,10 +14,13 @@ library(riingo)
 #####################################################################################
 tictoc::tic()
 
-str1 = readRDS('tickers/str1')
-str2 = readRDS('tickers/str2')
+str1 = readRDS('tickers/str.new.coins.rds')
 
-Timeframe = c("15min","30min","1hour","4hour","8hour","1day","7day")
+
+# str1 = readRDS('tickers/str1')
+# str2 = readRDS('tickers/str2')
+
+Timeframe = c("4hour","8hour","1day","7day")
 
 # x = list.files(path = 'TVData',full.names = TRUE)
 # file.names = list.files('TVData')
@@ -29,8 +32,8 @@ Timeframe = c("15min","30min","1hour","4hour","8hour","1day","7day")
 # df = readRDS("bsts/df_BTCUSDT4hour.rds")
 # bst = readRDS("bsts/bst_BTCUSD4hour-1.rds")
 
-for(i in 1:2){
-  for(z in 1:7){
+for(i in 35:length(str1)){
+  for(z in 1:1){
     
     df1 = riingo_crypto_prices(str1[i], end_date = Sys.Date(), resample_frequency = Timeframe[z])
     df1 = df1[-nrow(df1),]
@@ -38,7 +41,7 @@ for(i in 1:2){
     df3 = rbind(df1,df2) %>%
       select(date, open, high, low, close)
     
-    for(j in seq(from=1, to=2)){
+    for(j in seq(from=1, to=15)){
 
       # df = ls.files[[i]]
       if(nrow(df3) < 30){
@@ -200,12 +203,12 @@ for(i in 1:2){
       
 
       
-      saveRDS(df, file = paste0("bsts/df_",str1[i],Timeframe[z],".rds"))
+      saveRDS(df, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/df_",str1[i],Timeframe[z],".rds"))
       
       ### Remove OPEN HIGH LOW CLOSE
       df = df[,-c(1:4)]
       
-      saveRDS(outcome, file = paste0("bsts/outcome_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/outcome_",str1[i],Timeframe[z],j,".rds"))
       
       
       # Remove Previous column for testing
@@ -216,7 +219,7 @@ for(i in 1:2){
       set.seed(123)
       sample.split = sample(c(TRUE,FALSE), nrow(df), replace = TRUE, prob=c(0.8,0.2))
       
-      saveRDS(sample.split, file = paste0("bsts/sample.split_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/sample.split_",str1[i],Timeframe[z],j,".rds"))
       
       
       # Remvoe last sample int since I said so
@@ -228,8 +231,8 @@ for(i in 1:2){
       train = as.matrix(train)
       test = as.matrix(test)
       
-      saveRDS(train, file = paste0("bsts/train_",str1[i],Timeframe[z],j,".rds"))
-      saveRDS(test, file = paste0("bsts/test_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/train_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/test_",str1[i],Timeframe[z],j,".rds"))
       
       outcome.train = outcome[sample.split]
       outcome.test = outcome[!sample.split]
@@ -245,7 +248,7 @@ for(i in 1:2){
                     eta = 0.3,
                     verbose = FALSE)
       
-      saveRDS(bst, file = paste0("bsts/bst_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/bst_",str1[i],Timeframe[z],j,".rds"))
       print(paste0(str1[i],Timeframe[z],j))
     }
   }

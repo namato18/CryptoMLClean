@@ -1,4 +1,5 @@
 library(binance)
+library(dplyr)
 
 
 ## TestingR
@@ -22,25 +23,33 @@ binance::spot_account()
 df = binance::market_average_price('DOGEUSDT')
 df$price
 
-x = spot_new_order(
+# check if supported
+market_exchange_info()$symbols %>% filter(symbol == "BTCUSDT") %>% pull(order_types)
+x = market_exchange_info()$symbols %>% filter(symbol == "BTCUSDT")
+
+spot_new_order(
   order_type = "MARKET",
-  symbol = "DOGEUSDT",
+  symbol = "BTCUSDT",
   side = "BUY",
-  quantity = 200,
+  quantity = 1,
+  test = TRUE
 )
 
 
 spot_new_order(
   order_type = "MARKET",
-  symbol = "DOGEUSDT",
+  symbol = "BTCUSDT",
   side = "SELL",
-  quantity = 199
+  quantity = 1
   )
 
 spot_new_order(
-  order_type = 'LIMIT',
+  order_type = 'STOP_LOSS_LIMIT',
   symbol = 'BTCUSDT',
   side = 'SELL',
-  stopPrice = 20000,
-  test = TRUE
+  quantity = 1,
+  price = 25000,
+  stopPrice = 24000,
+  time_in_force = 'GTC',
+  test = TRUE,
 )

@@ -8,10 +8,11 @@ library(quantmod)
 library(CandleStickPattern)
 # predict_week = function(symbol){
 # symbol = 'arbusdt'
-str1 = readRDS('tickers/str1')
-str2 = readRDS('tickers/str2')
+str2 = readRDS('tickers/str.new.coins.rds')
+# str1 = readRDS('tickers/str1')
+# str2 = readRDS('tickers/str2')
 
-checkbox_list = setNames(str2, str1)
+# checkbox_list = setNames(str2, str1)
 timeframe = c('daily','weekly')
 
 for(j in 1:length(str2)){
@@ -172,7 +173,7 @@ for(j in 1:length(str2)){
     
     # bst = readRDS(paste0('bsts_T/bst_T_',symbol,'.rds'))
     
-    saveRDS(bst, paste0('bsts_T/bst_T_',symbol,timeframe[i],'.rds'))
+    saveRDS(bst, paste0('C:/Users/xbox/Desktop/Rstuff/bsts_T-7-3-2023/bst_T_',symbol,timeframe[i],'.rds'))
   }
   print(symbol)
 }

@@ -12,8 +12,8 @@ library(binance)
 library(purrr)
 library(shinymanager)
 # MINE
-# secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-# api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
 
 credentials <- data.frame(
   user = c('gentlemam','nick',"shiny", "shinymanager"),
@@ -22,12 +22,12 @@ credentials <- data.frame(
 )
 
 #Gentlemam
-secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
-api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+# secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+# api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
 
 binance::authenticate(key = api_key,secret = secret)
 
-# binance::base_url("https://api.binance.us")
+binance::base_url("https://api.binance.us")
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -69,8 +69,6 @@ ui <- secure_app(dashboardPage(
     tabItems(
       tabItem(tabName = "create",
               fluidRow(
-                tags$h2("My secure application"),
-                verbatimTextOutput("auth_output"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
                 #        <input type="hidden" name="cmd" value="_s-xclick">
@@ -426,10 +424,8 @@ server <- function(input, output, session) {
   res_auth <- secure_server(
     check_credentials = check_credentials(credentials)
   )
-  
-  output$auth_output <- renderPrint({
-    reactiveValuesToList(res_auth)
-  })
+  user = res_auth$user
+
 # .GlobalEnv = environment()
   # Read in functions
   source("DogeCoinML.R")
