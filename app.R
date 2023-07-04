@@ -12,12 +12,12 @@ library(binance)
 library(purrr)
 library(shinymanager)
 # MINE
-secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+# secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+# api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
 
 credentials <- data.frame(
-  user = c('gentlemam','nick',"shiny", "shinymanager"),
-  password = c("gentlemam1234","123","azerty", "12345"),
+  user = c('gentlemam1','gentlemam2','gentlemam3','nick',"shiny", "shinymanager"),
+  password = c("gentlemam1234","gentlemam1234","gentlemam1234","123","azerty", "12345"),
   stringsAsFactors = FALSE
 )
 
@@ -25,9 +25,9 @@ credentials <- data.frame(
 # secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
 # api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
 
-binance::authenticate(key = api_key,secret = secret)
-
-binance::base_url("https://api.binance.us")
+# binance::authenticate(key = api_key,secret = secret)
+# 
+# binance::base_url("https://api.binance.us")
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -69,6 +69,7 @@ ui <- secure_app(dashboardPage(
     tabItems(
       tabItem(tabName = "create",
               fluidRow(
+                verbatimTextOutput("auth_output"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
                 #        <input type="hidden" name="cmd" value="_s-xclick">
@@ -420,11 +421,15 @@ ui <- secure_app(dashboardPage(
 
 # Define server logic
 server <- function(input, output, session) {
-  
   res_auth <- secure_server(
-    check_credentials = check_credentials(credentials)
+    check_credentials = check_credentials(credentials),
   )
-  user = res_auth$user
+  output$auth_output <- renderPrint({
+    reactiveValuesToList(res_auth)$user
+  })
+  
+
+  # user = res_auth$user
 
 # .GlobalEnv = environment()
   # Read in functions
@@ -570,8 +575,9 @@ server <- function(input, output, session) {
       symbol = input$selectCoinBinance,
       side = input$selectSideBinance,
       quantity = input$tradeQuantity,
+      test = FALSE
     )
-    if(x == 'ERROR'){
+    if(x[1] == 'ERROR'){
       shinyalert("Order Not Placed",
                  "Check to see if you used to many decimals or if the minimum order requirements have not been met!",
                  type = 'error')
@@ -595,6 +601,7 @@ server <- function(input, output, session) {
     updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
   })
   
+  
   # observeEvent(input$tradeQuantity, {
   #   quantity = input$tradeQuantity
   #   current_balance = spot_account_balances()
@@ -614,6 +621,38 @@ server <- function(input, output, session) {
   #   
   # })
   
+  observe({
+    if(is.null(reactiveValuesToList(res_auth)$user)){
+
+    }else if(reactiveValuesToList(res_auth)$user == 'nick'){
+      # MINE
+
+      secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+      api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+      binance::authenticate(key = api_key,secret = secret)
+      # binance::base_url("https://api.binance.us")
+
+    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
+      #Gentlemam
+      secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+      api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+      binance::authenticate(key = api_key,secret = secret)
+    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
+      #Gentlemam
+      secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
+      api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
+      binance::authenticate(key = api_key,secret = secret)
+    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
+      #Gentlemam
+      secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
+      api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
+      binance::authenticate(key = api_key,secret = secret)
+    }
+
+
+
+
+  })
 
 }
 

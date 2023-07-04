@@ -29,18 +29,17 @@ x = market_exchange_info()$symbols %>% filter(symbol == "BTCUSDT")
 
 spot_new_order(
   order_type = "MARKET",
-  symbol = "BTCUSDT",
+  symbol = "DOGEUSDT",
   side = "BUY",
-  quantity = 1,
-  test = TRUE
+  quantity = 100,
 )
 
 
 spot_new_order(
   order_type = "MARKET",
-  symbol = "BTCUSDT",
+  symbol = "DOGEUSDT",
   side = "SELL",
-  quantity = 1
+  quantity = 99
   )
 
 spot_new_order(
@@ -53,3 +52,35 @@ spot_new_order(
   time_in_force = 'GTC',
   test = TRUE,
 )
+
+order <- spot_new_order(
+  order_type = "STOP_LOSS_LIMIT",
+  symbol = "BTCUSDT",
+  side = "SELL",
+  quantity = 1,
+  price = 22000,
+  time_in_force = "GTC",
+  stop_price = 17000,
+  test = TRUE
+)
+
+order <- spot_new_order(
+  order_type = "STOP_LOSS_LIMIT",
+  symbol = "DOGEUSDT",
+  side = "SELL",
+  quantity = 99,
+  price = 0.055,
+  time_in_force = "GTC",
+  stop_price = 0.050,
+)
+
+order2 <- spot_new_order(
+  order_type = "TAKE_PROFIT_LIMIT",
+  symbol = "DOGEUSDT",
+  side = "SELL",
+  quantity = 99,
+  price = 0.075,
+  time_in_force = "GTC",
+  stop_price = 0.073,
+)
+

@@ -232,7 +232,6 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
   
   
   for(i in 1:length(Symbols)){
-
     if(Timeframe == '4hour' | Timeframe == '8hour'){
       df1 = riingo_crypto_prices(Symbols[i], end_date = Sys.Date(), resample_frequency = Timeframe)
       df1 = df1[-nrow(df1),]
