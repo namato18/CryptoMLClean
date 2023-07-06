@@ -412,10 +412,11 @@ ui <- secure_app(dashboardPage(
                            block = TRUE),
                 br(),
                 box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=6,
-                  
+                  dataTableOutput("currentAutomation")
                 ),
                 box(title = "Automated Trades Placed", status = "primary", solidHeader = TRUE,width=6,
-                    
+                    selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
+                    dataTableOutput("tradesPlaced")
                 )
               ))
     )
@@ -464,7 +465,15 @@ server <- function(input, output, session) {
     output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
     output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
     
+    x = aws.s3::get_bucket_df("cryptomlbucket")
     
+    x.sel = x[grepl(pattern = paste0("Automation/","nick","/"), x = x$Key),]
+    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    if(length(coins.running) != 0){
+      y = data.frame(Coins = coins.running)
+      output$currentAutomation = renderDataTable(datatable(y))
+    }
+
     
     
   })

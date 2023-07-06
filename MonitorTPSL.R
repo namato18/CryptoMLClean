@@ -79,7 +79,11 @@ if(length(user.files) == 0){
 ############################################# 
 ############################################# RUN THIS CODE FOR EACH USERS ACTIVE AUTOMATION
 for(i in 1:length(user.files)){
-  df = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/ActiveAutomation"), object = user.files[1])
+  df = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/ActiveAutomation"), object = user.files[i])
+  if(nrow(df) == 0){
+    print('no purchases for this user')
+    next()
+  }
   df$TakeProfitPrice = df$Price * (1 + (df$TakeProfit / 100))
   df$StopLossPrice = df$Price * (1 - (df$StopLoss / 100))
   
