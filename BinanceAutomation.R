@@ -53,14 +53,12 @@ if(length(users) == 0){
 ############################################# 
 ############################################# RUN FOR EACH USER
 for(i in 1:length(users)){
-  i=1
   x.sel.usr = x.sel[grepl(pattern=users[i], x.sel$Key),]
   path = str_match(string = x.sel.usr$Key[1], pattern = "(.*/.*)/")[,2]
   
   ############################################# 
   ############################################# RUN FOR EACH AUTOMATION FILE WITHIN USER
   for(j in 2:nrow(x.sel.usr)){
-    j=2
     file.name = str_match(string = x.sel.usr$Key[j], pattern = ".*/.*/(.*)")[,2]
     file.usr = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/",path), object = file.name)
     file.usr = left_join(file.usr, credentials, by = 'User')
@@ -87,7 +85,7 @@ for(i in 1:length(users)){
       
       ############################################# 
       ############################################# CALCULATE STEP DOWN VALUE TO ENSURE SUCCESSFUL SELL
-      quantity_coin = 20
+      # quantity_coin = 20
       
       if(coin_decimals$decimals[coin_decimals$symbol == file.usr$Coins] == 0){
         step_down = quantity_coin - 1
