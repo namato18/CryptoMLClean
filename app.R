@@ -379,9 +379,15 @@ ui <- secure_app(dashboardPage(
                                                                                "1 Week" = "7day",
                                                                                "1 Month" = '1month')),
                   br(),
-                  selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = TRUE),
+                  selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
                   br(),
                   sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 1, max = 15, value = 1, step = 1),
+                  br(),
+                  sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
+                  br(),
+                  sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                  br(),
+                  sliderInput("stopLossBinanceAutomation", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
                   br(),
                   sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
                   br(),
@@ -428,6 +434,41 @@ server <- function(input, output, session) {
     reactiveValuesToList(res_auth)$user
   })
   
+  observe({
+    if(is.null(reactiveValuesToList(res_auth)$user)){
+      
+    }else if(reactiveValuesToList(res_auth)$user == 'nick'){
+      # MINE
+      
+      secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+      api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+      binance::authenticate(key = api_key,secret = secret)
+      binance::base_url("https://api.binance.us")
+      
+    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
+      #Gentlemam
+      secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+      api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+      binance::authenticate(key = api_key,secret = secret)
+    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
+      #Gentlemam
+      secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
+      api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
+      binance::authenticate(key = api_key,secret = secret)
+    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
+      #Gentlemam
+      secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
+      api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
+      binance::authenticate(key = api_key,secret = secret)
+    }
+    output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+    output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
+    
+    
+    
+    
+  })
+  
 
   # user = res_auth$user
 
@@ -436,8 +477,7 @@ server <- function(input, output, session) {
   source("DogeCoinML.R")
   
   output$decimalsAllowed = renderText(paste0(coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance], " decimal places allowed."))
-  output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
-  output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
+
   output$timeRemaining = renderText(paste0("Please note there is ",getTimeRemaining(input$timeframePredict)," before the current candle closes! displayed predictions are for the current candle!"))
   output$TVPrediction = NULL
   
@@ -597,61 +637,56 @@ server <- function(input, output, session) {
     quantity_usdt = free_usdt * percentage
     
     current_coin_price = round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4)
-    quantity_coin = round(quantity_usdt / current_coin_price, digits = 0)
+    quantity_coin = round(quantity_usdt / current_coin_price, digits = coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance])
     updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
   })
   
+
   
-  # observeEvent(input$tradeQuantity, {
-  #   quantity = input$tradeQuantity
-  #   current_balance = spot_account_balances()
-  #   free_usdt = current_balance$free[current_balance$asset == 'USDT']
-  #   current_coin_price = round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4)
-  #   
-  #   quantity.price = quantity * current_coin_price
-  #   percent.of.free = quantity.price / free_usdt * 100
-  #   
-  #   if(percent.of.free > 100){
-  #     updateSliderInput(session = session, inputId = 'percentSliderBinance', label='Percentage of USDT balance',value = 10,min = 0, max = 100, step = 0.1 )
-  #   }else{
-  #     updateSliderInput(session = session, inputId = 'percentSliderBinance', label='Percentage of USDT balance',value = percent.of.free,min = 0, max = 100, step = 0.1 )
-  #     
-  #   }
-  #   
-  #   
-  # })
+  observeEvent(input$submitBinanceAutomation, {
+    
+    x = data.frame(User = reactiveValuesToList(res_auth)$user,
+                   Timeframe = input$timeframeAutomation,
+                   Coins = input$checkGroupBinance,
+                   Target = input$sliderAutomationTarget,
+                   Confidence = input$confidenceThresholdAutomation,
+                   Percentage = input$sliderBalanceUsed,
+                   TakeProfit = input$takeProfitBinanceAutomation,
+                   StopLoss = input$stopLossBinanceAutomation,
+                   Active = TRUE
+                   )
+    saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+
+    aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+
+    put_object(
+      file = file.path(tempdir(), "x.rds"),
+      object = paste0(input$checkGroupBinance,".rds"),
+      bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+    )
+  })
   
-  observe({
-    if(is.null(reactiveValuesToList(res_auth)$user)){
-
-    }else if(reactiveValuesToList(res_auth)$user == 'nick'){
-      # MINE
-
-      secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-      api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
-      binance::authenticate(key = api_key,secret = secret)
-      # binance::base_url("https://api.binance.us")
-
-    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
-      #Gentlemam
-      secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
-      api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
-      binance::authenticate(key = api_key,secret = secret)
-    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
-      #Gentlemam
-      secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
-      api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
-      binance::authenticate(key = api_key,secret = secret)
-    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
-      #Gentlemam
-      secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
-      api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
-      binance::authenticate(key = api_key,secret = secret)
-    }
-
-
-
-
+  observeEvent(input$cancelBinanceAutomation, {
+    
+    x = data.frame(User = reactiveValuesToList(res_auth)$user,
+                   Timeframe = input$timeframeAutomation,
+                   Coins = input$checkGroupBinance,
+                   Target = input$sliderAutomationTarget,
+                   Confidence = input$confidenceThresholdAutomation,
+                   Percentage = input$sliderBalanceUsed,
+                   TakeProfit = input$takeProfitBinanceAutomation,
+                   StopLoss = input$stopLossBinanceAutomation,
+                   Active = FALSE
+    )
+    saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+    
+    aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+    
+    put_object(
+      file = file.path(tempdir(), "x.rds"),
+      object = paste0(input$checkGroupBinance,".rds"),
+      bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+    )
   })
 
 }
