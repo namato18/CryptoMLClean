@@ -11,6 +11,7 @@ library(shinyalert)
 library(binance)
 library(purrr)
 library(shinymanager)
+library(flexdashboard)
 # MINE
 # secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
 # api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
@@ -31,11 +32,15 @@ credentials <- data.frame(
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
+
+str1 = str1[-61]
+str2 = str2[-61]
 coin_decimals = readRDS('coin_decimals.rds')
 
 checkbox_list = setNames(str1, str1)
 
 possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
+possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 
 
 # Define UI
@@ -44,7 +49,7 @@ ui <- secure_app(dashboardPage(
     theme = "poor_mans_flatly",
     boldText = "Crypto Currency",
     mainText = 'Predictor',
-    badgeText = "v1.4"
+    badgeText = "v1.5"
   ),
   titleWidth = 300
                   ),
@@ -68,7 +73,7 @@ ui <- secure_app(dashboardPage(
     ),
     tabItems(
       tabItem(tabName = "create",
-              fluidRow(
+              fluidPage(
                 verbatimTextOutput("auth_output"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
@@ -372,7 +377,7 @@ ui <- secure_app(dashboardPage(
                 box(width=10,
                     paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
                 ),
-                box(title = "Inputs", status = "primary", solidHeader = TRUE,width=12,
+                box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
                   selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("4 Hour" = "4hour",
                                                                                "8 Hour" = "8hour",
                                                                                "1 Day" = "1day",
@@ -390,10 +395,19 @@ ui <- secure_app(dashboardPage(
                   sliderInput("stopLossBinanceAutomation", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
                   br(),
                   sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
-                  br(),
-                  sliderInput("volumeCheckAutomation", "Volume (5min before candle start) Should be More Than Buy Amount By:", min = 1, max = 100, step = 1, value = 50)
+
                   
-                  
+                ),
+                box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                    dataTableOutput("currentAutomation")
+                ),
+                br(),
+                box(title = "Current Automation Info", status = "primary", solidHeader = TRUE,width=8,
+                    selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
+                    dataTableOutput("activeAutomationInfo")
+                ),
+                box(title = "Volume % Change From Mean 5min Volume Over Past 2days", status = "primary", solidHeader = TRUE,width=4,
+                  gaugeOutput("volumeGauge")
                 ),
                 actionBttn(inputId = 'submitBinanceAutomation',
                            label = 'Begin Automation',
@@ -411,13 +425,11 @@ ui <- secure_app(dashboardPage(
                            size = 'lg',
                            block = TRUE),
                 br(),
-                box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=6,
-                  dataTableOutput("currentAutomation")
-                ),
-                box(title = "Automated Trades Placed", status = "primary", solidHeader = TRUE,width=6,
+                box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
                     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
                     dataTableOutput("tradesPlaced")
                 )
+
               ))
     )
   )
@@ -467,13 +479,16 @@ server <- function(input, output, session) {
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/","nick","/"), x = x$Key),]
+    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     if(length(coins.running) != 0){
       y = data.frame(Coins = coins.running)
       output$currentAutomation = renderDataTable(datatable(y))
+      updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+      updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+      
     }
-
+ 
     
     
   })
@@ -650,6 +665,29 @@ server <- function(input, output, session) {
     updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
   })
   
+  
+  observeEvent(input$checkGroupBinance, {
+    vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
+    vol1 = vol1[-1,]
+    vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
+    
+    vol = rbind(vol2, vol1)
+    m.vol = mean(vol$volume)
+    vol.now = vol$volume[(nrow(vol)-1)]
+    
+    vol.compare = (vol.now/m.vol * 100) - 100
+    
+    output$volumeGauge = renderGauge({
+      gauge(vol.compare,
+            min = -100,
+            max = 100,
+            sectors = gaugeSectors(
+              success = c(20, 100), 
+              warning = c(-20, 20),
+              danger = c(-100, -20)))
+    })
+  })
+  
 
   
   observeEvent(input$submitBinanceAutomation, {
@@ -673,6 +711,22 @@ server <- function(input, output, session) {
       object = paste0(input$checkGroupBinance,".rds"),
       bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     )
+    
+    x = aws.s3::get_bucket_df("cryptomlbucket")
+    
+    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    if(length(coins.running) != 0){
+      y = data.frame(Coins = coins.running)
+      output$currentAutomation = renderDataTable(datatable(y))
+    }
+    
+    updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+    updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+    
+    shinyalert("Success",
+               "Your Automation Was Successfully Started!",
+               type = 'success')
   })
   
   observeEvent(input$cancelBinanceAutomation, {
@@ -697,7 +751,24 @@ server <- function(input, output, session) {
       bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     )
   })
+  observeEvent(input$selectTradesPlaced, {
+    y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
+    if(!is.null(y)){
+      y = y %>%
+        select(symbol, time, price, qty, commission, commission_asset, side)
+      output$tradesPlaced = renderDataTable(datatable(y))
+    }
 
+  })
+  
+  observeEvent(input$selectActiveAutomation, {
+   active = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(input$selectActiveAutomation,".rds"))
+   if(active[1] == 'ERROR'){
+     return(NULL)
+   }else{
+     output$activeAutomationInfo = renderDataTable(datatable(active))
+   }
+  })
 }
 
 # Run the application 

@@ -25,12 +25,14 @@ GETBOOST = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = 
 
 
 # AUTOMATED PUT TO AWS
-x = list.files(path = 'C:/Users/xbox/Desktop/Rstuff/bsts_T-7-3-2023')
+tic()
+x = list.files(path = 'C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023')
 
 for(i in 1:length(x)){
   put_object(
-    file = file.path("C:/Users/xbox/Desktop/Rstuff/bsts_T-7-3-2023", x[i]), 
+    file = file.path("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023", x[i]), 
     object = x[i], 
-    bucket = "cryptomlbucket/bsts/bsts_T/bsts_T"
+    bucket = "cryptomlbucket/bsts2"
   )
 }
+toc()

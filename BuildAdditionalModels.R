@@ -14,7 +14,8 @@ library(riingo)
 #####################################################################################
 tictoc::tic()
 
-str1 = readRDS('tickers/str.new.coins.rds')
+str1 = readRDS('tickers/str1.rds')
+# str1 = 'CKBUSDT'
 
 
 # str1 = readRDS('tickers/str1')
@@ -22,29 +23,33 @@ str1 = readRDS('tickers/str.new.coins.rds')
 
 Timeframe = c("4hour","8hour","1day","7day")
 
-# x = list.files(path = 'TVData',full.names = TRUE)
-# file.names = list.files('TVData')
-# file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
-# ls.files = lapply(x, read.csv)
+x = list.files(path = '../CombinedTVData',full.names = TRUE)
+file.names = list.files('../CombinedTVData')
+file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
+ind = grep(pattern = '4hour', x = file.names)
+ind = ind[-99]
+file.names = file.names[ind]
+x = x[ind]
+ls.files = lapply(x, read.csv)
+
 # j = 1
 # df = read.csv("TVData/BTCUSDT4hour.csv")
 # 
 # df = readRDS("bsts/df_BTCUSDT4hour.rds")
 # bst = readRDS("bsts/bst_BTCUSD4hour-1.rds")
 
-for(i in 35:length(str1)){
-  for(z in 1:1){
-    
-    df1 = riingo_crypto_prices(str1[i], end_date = Sys.Date(), resample_frequency = Timeframe[z])
-    df1 = df1[-nrow(df1),]
-    df2 = riingo_crypto_latest(str1[i], resample_frequency = Timeframe[z])
-    df3 = rbind(df1,df2) %>%
-      select(date, open, high, low, close)
-    
+for(i in 1:length(file.names)){
+  # for(z in 1:1){
+  # 
+  #   # df1 = riingo_crypto_prices(str1[i], end_date = Sys.Date(), resample_frequency = Timeframe[z])
+  #   # df1 = df1[-nrow(df1),]
+  #   # df2 = riingo_crypto_latest(str1[i], resample_frequency = Timeframe[z])
+  #   # df3 = rbind(df1,df2) %>%
+  #   #   select(date, open, high, low, close)
+  #   
     for(j in seq(from=1, to=15)){
-
-      # df = ls.files[[i]]
-      if(nrow(df3) < 30){
+      df = ls.files[[i]]
+      if(nrow(df) < 30){
         next()
       }
       # Testing quantmod
@@ -57,7 +62,7 @@ for(i in 35:length(str1)){
       # df = na.omit(df)
       
       # Remove uncecessary columns
-      df = df3[,1:5]
+      df = df[,1:5]
       
       # Modify data to be more useable
       df$Percent.Change = NA
@@ -67,6 +72,23 @@ for(i in 35:length(str1)){
         df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 1)
       }else{
         df$Percent.Change = round((((df$Low / df$Open) * 100) - 100), digits = 1)
+      }
+      
+      df$DBreakL = NA
+      df$BreakH = NA
+
+      for(k in 2:(nrow(df)-1)){
+        if(df$Low[k] <= df$Low[k-1]){
+          df$DBreakL[k+1] = 0
+        }else{
+          df$DBreakL[k+1] = 1
+        }
+
+        if(df$High[k] >= df$High[k-1]){
+          df$BreakH[k+1] = 1
+        }else{
+          df$BreakH[k+1] = 0
+        }
       }
       
       #Add column for binary previouos day change+
@@ -85,30 +107,30 @@ for(i in 35:length(str1)){
       
       # Adding Moving Averages
       df$MA10 = NA
-      # df$MA20 = NA
+      df$MA20 = NA
       
       for(k in 21:nrow(df)){
         df$MA10[k] = mean(df$Close[k-10:k])
-        # df$MA20[k] = mean(df$Close[k-20:k])
+        df$MA20[k] = mean(df$Close[k-20:k])
       }
       # df$MA10 = round(df$MA10, digits = 2)
       # df$MA20 = round(df$MA20, digits = 2)
       
       # Add column for if MA10 is above or below MA20
-      # df$MAAB = 0
-      # 
-      # df$MAAB[df$MA10 > df$MA20] = 1
+      df$MAAB = 0
+
+      df$MAAB[df$MA10 > df$MA20] = 1
       
-      
+      df = df[,-which(colnames(df) %in% c("MA10","MA20"))]
       # Convert to actual dates and remove year and change to numeric
       df$Date = str_replace(string = df$Date, pattern = "T", replacement = " ")
       df$Date = str_replace(string = df$Date, pattern = "Z", replacement = "")
       
-      if(Timeframe[z] == '1day' | Timeframe[z] == '7day'){
-        df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d")
-      }else{
+      # if(Timeframe[z] == '1day' | Timeframe[z] == '7day'){
+      #   df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d")
+      # }else{
         df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
-      }
+      # }
       
       df = as.xts(df)
       
@@ -203,12 +225,12 @@ for(i in 35:length(str1)){
       
 
       
-      saveRDS(df, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/df_",str1[i],Timeframe[z],".rds"))
+      saveRDS(df, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023/df_",file.names[i],".rds"))
       
       ### Remove OPEN HIGH LOW CLOSE
       df = df[,-c(1:4)]
       
-      saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/outcome_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023/outcome_",file.names[i],j,".rds"))
       
       
       # Remove Previous column for testing
@@ -219,7 +241,7 @@ for(i in 35:length(str1)){
       set.seed(123)
       sample.split = sample(c(TRUE,FALSE), nrow(df), replace = TRUE, prob=c(0.8,0.2))
       
-      saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/sample.split_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023/sample.split_",file.names[i],j,".rds"))
       
       
       # Remvoe last sample int since I said so
@@ -231,8 +253,8 @@ for(i in 35:length(str1)){
       train = as.matrix(train)
       test = as.matrix(test)
       
-      saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/train_",str1[i],Timeframe[z],j,".rds"))
-      saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/test_",str1[i],Timeframe[z],j,".rds"))
+      saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023/train_",file.names[i],j,".rds"))
+      saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023/test_",file.names[i],j,".rds"))
       
       outcome.train = outcome[sample.split]
       outcome.test = outcome[!sample.split]
@@ -248,9 +270,9 @@ for(i in 35:length(str1)){
                     eta = 0.3,
                     verbose = FALSE)
       
-      saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-3-2023/bst_",str1[i],Timeframe[z],j,".rds"))
-      print(paste0(str1[i],Timeframe[z],j))
+      saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023/bst_",file.names[i],j,".rds"))
+      print(paste0(file.names[i],j))
     }
-  }
+  #}
 }
 tictoc::toc()

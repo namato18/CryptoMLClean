@@ -8,6 +8,7 @@ library(usethis)
 library(CandleStickPattern)
 library(plotly)
 library(chron)
+library(aws.s3)
 
 readRenviron(".Renviron")
 Sys.setenv(TZ='UTC')
@@ -103,7 +104,7 @@ if(timeframe == '1day'){
 
 createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timeframe, TP=0){
 
-# Symbol = 'ETHUSD'
+# Symbol = 'ETHUSDT'
 # Timeframe = '4hour'
 # TargetIncreasePercent = "1"
 # SuccessThreshold = '0.9'
@@ -113,10 +114,10 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
 # test = readRDS(paste0("bsts/test_",'ETHUSD','4hour',"1",".rds"))
 # train = readRDS(paste0("bsts/train_",'ETHUSD','4hour',"1",".rds"))
   
-df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("df_",Symbol,Timeframe,".rds"))
-sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts2", object = paste0("df_",Symbol,Timeframe,".rds"))
+sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts2", object = paste0("sample.split_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts2", object = paste0("outcome_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts2", object = paste0("test_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 # train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
   
@@ -132,7 +133,7 @@ outcome.test = outcome[!sample.split]
 
 assign('train',train,.GlobalEnv)
 
-bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts2", object = paste0("bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 # bst = readRDS(paste0("bsts/bst_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
 
 # bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
@@ -148,6 +149,27 @@ compare = data.frame("Actual" = outcome.test,
                      "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
                      "Confidence.Score" = round(predictions, digits = 4),
                      "Signal" = NA)
+
+# df$DBreakLow = NA
+# df$BreakHigh = NA
+# 
+# for(i in 2:(nrow(df)-1)){
+#   if(df$Low[i] <= df$Low[i-1]){
+#     df$DBreakLow[i+1] = 0
+#   }else{
+#     df$DBreakLow[i+1] = 1
+#   }
+# 
+#   if(df$High[i] >= df$High[i-1]){
+#     df$BreakHigh[i+1] = 1
+#   }else{
+#     df$BreakHigh[i+1] = 0
+#   }
+# }
+# 
+# DBreakLow.test = df$DBreakLow[which(!sample.split)]
+# BreakHigh.test = df$BreakHigh[which(!sample.split)]
+
 
   compare$Signal[compare$Confidence.Score >= SuccessThreshold] = 1
   compare$Signal[compare$Confidence.Score < SuccessThreshold] = 0
@@ -219,11 +241,12 @@ assign('bst',bst,.GlobalEnv)
 
 
 predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .GlobalEnv){
-  # Symbols = Symbols
-  # Symbols = c('BTCUSDT')
+  # # Symbols = Symbols
+  # Symbols = c('CKBUSDT')
   # Timeframe = '4hour'
   # i = 1
   # SuccessThreshold = 0.9
+  
   predictions.df.comb = data.frame("Coin" = character(),
                               "Price Change" = character(),
                               "Confidence.Score.HIT.TARGET" = character(),
@@ -247,6 +270,23 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     colnames(df) = c("Date","Open","High","Low","Close","Percent.Change")
     df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 1)
     
+    df$DBreakL = NA
+    df$BreakH = NA
+    
+    for(k in 2:(nrow(df)-1)){
+      if(df$Low[k] <= df$Low[k-1]){
+        df$DBreakL[k+1] = 0
+      }else{
+        df$DBreakL[k+1] = 1
+      }
+      
+      if(df$High[k] >= df$High[k-1]){
+        df$BreakH[k+1] = 1
+      }else{
+        df$BreakH[k+1] = 0
+      }
+    }
+    
     #Add column for binary previouos day change+
     df$Previous = NA
     for(k in 2:nrow(df)){
@@ -269,27 +309,31 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
 
     assign(paste0('df_candleplot_',Symbols[i]),df_candle_plot,.GlobalEnv)
     
-    
     # Adding Moving Averages
     df$MA10 = NA
-    # df$MA20 = NA
+    df$MA20 = NA
     
     for(k in 21:nrow(df)){
       df$MA10[k] = mean(df$Close[k-10:k])
-      # df$MA20[k] = mean(df$Close[k-20:k])
+      df$MA20[k] = mean(df$Close[k-20:k])
     }
     # df$MA10 = round(df$MA10, digits = 2)
     # df$MA20 = round(df$MA20, digits = 2)
     
-
-    
     # Add column for if MA10 is above or below MA20
-    # df$MAAB = 0
-    # 
-    # df$MAAB[df$MA10 > df$MA20] = 1
+    df$MAAB = 0
     
+    df$MAAB[df$MA10 > df$MA20] = 1
+    
+    df = df[,-which(colnames(df) %in% c("MA10","MA20"))]
+    
+    # Convert to actual dates and remove year and change to numeric
+    df$Date = str_replace(string = df$Date, pattern = "T", replacement = " ")
+    df$Date = str_replace(string = df$Date, pattern = "Z", replacement = "")
     
     df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+    
+    df = df[!is.na(df$Date),]
     
     df = as.xts(df)
     
@@ -334,7 +378,8 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     
     # grab second to last entry since that is the most recent closed candle
     df = df[nrow(df)-1,]
-    
+    df = df[,-c(1:4)]
+
     
     
     predictions.df.pos = data.frame("Coin" = rep(toupper(Symbols[i]),2),
@@ -351,9 +396,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     predictions.pos = c()
     predictions.neg = c()
     for(j in 1:2){
-      # bst = readRDS(paste0('bsts/bst_',toupper(Symbols[i]),Timeframe,j,'.rds'))
-      
-      bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
+      bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts2", object = paste0("bst_",Symbols[i],Timeframe,j,".rds"))
       # bst = readRDS(paste0("bsts/bst_",Symbols[i],Timeframe,j,".rds"))
       
       df = as.matrix(df)
@@ -671,6 +714,8 @@ outcome = outcome[-1]
   df = data.frame(df, row.names = NULL)
   # df = df[,c(1:11,12:25)]
   
+  ### Remove OPEN HIGH LOW CLOSE
+  df = df[,-c(1:4)]
   
   # Split data into train and test
   set.seed(123)
