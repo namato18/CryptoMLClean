@@ -15,12 +15,12 @@ str1 = str1[-61]
 
 ########################################## SET TIMEFRAMES
 ########################################## 
-timeframes = c("5min","15min","30min", "45min")
-timeframes.n = c(5,15,30,45)
+timeframes = c("4hour","8hour","1day")
+timeframes.n = c(240,480,1440)
 
 ########################################## SET UP LOOPS, ONCE FOR EACH TIMEFRAME
 ########################################## 
-for(i in 3:length(timeframes)){
+for(i in 1:length(timeframes)){
   days.back = floor(50 * (timeframes.n[i] / 15))
   for(j in 1:length(str1)){
     

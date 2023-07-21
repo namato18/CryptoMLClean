@@ -96,14 +96,16 @@ ui <- secure_app(dashboardPage(
       
                 column(width = 6,
                        box(title = "Inputs", solidHeader = TRUE, status = "primary", width = NULL,
-                         selectInput("timeframe","Pick a Timeframe", choices = list("4 Hour" = "4hour",
+                         selectInput("timeframe","Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                    "1 Hour" = "1hour",
+                                                                                    "4 Hour" = "4hour",
                                                                                     "8 Hour" = "8hour",
                                                                                     "1 Day" = "1day",
                                                                                     "1 Week" = "7day",
                                                                                     "1 Month" = '1month')),
                          selectInput("select","Pick a crypto to predict", choices = checkbox_list),
                          br(),
-                         sliderInput("slider1","Select Percentage Increase", min = 1, max = 15, step = 1, value = 1),
+                         sliderInput("slider1","Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1),
                          sliderInput("slider2", "Confidence Score 'BUY' Threshold", min = 0.1, max = 1, step = 0.02, value = 0.9),
                          # strong("Note: IT IS STRONGLY RECOMMENDED TO PLACE YOUR TAKE PROFIT TO THE SAME VALUE AS YOUR TARGET PERCENTAGE INCREASE"),
                          # br(),
@@ -198,7 +200,9 @@ ui <- secure_app(dashboardPage(
                     # checkboxGroupInput('checkGroup', label = 'Select Coin(s)',
                     #                    choices = checkbox_list,
                     #                    selected = 'btcusd'),
-                    selectInput("timeframePredict","Pick a Timeframe", choices = list("4 Hour" = "4hour",
+                    selectInput("timeframePredict","Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                      "1 Hour" = "1hour",
+                                                                                      "4 Hour" = "4hour",
                                                                                       "8 Hour" = "8hour",
                                                                                       "1 Day" = "1day",
                                                                                       "1 Week" = "7day")),
@@ -769,6 +773,15 @@ server <- function(input, output, session) {
      output$activeAutomationInfo = renderDataTable(datatable(active))
    }
   })
+  
+  observeEvent(input$timeframe,{
+    if(input$timeframe == "15min" | input$timeframe == "1hour"){
+      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1)
+    }else{
+      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.2)
+    }
+  })
+  
 }
 
 # Run the application 
