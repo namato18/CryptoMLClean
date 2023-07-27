@@ -383,7 +383,7 @@ ui <- secure_app(dashboardPage(
                   br(),
                   selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
                   br(),
-                  sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 1, max = 15, value = 1, step = 1),
+                  sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
                   br(),
                   sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
                   br(),
