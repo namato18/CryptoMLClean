@@ -1,5 +1,5 @@
 library(aws.s3)
-
+library(tictoc)
 # Sys.setenv("AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJUAAKBDHG",
 #            "AWS_SECRET_ACCESS_KEY" = "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",
 #            "AWS_DEFAULT_REGION" = "us-east-1")
@@ -21,18 +21,19 @@ put_object(
 )
 
 # READ OBJECT
-GETBOOST = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts", object = "bst_ACHUSDT1day1.rds")
+GETBOOST = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = "bst_ZRXUSDT_15min-0.1.rds")
 
 
 # AUTOMATED PUT TO AWS
 tic()
-x = list.files(path = 'C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023')
+x = list.files(path = 'C:/Users/xbox/Desktop/Rstuff/bsts-7-26-2023')
 
 for(i in 1:length(x)){
   put_object(
-    file = file.path("C:/Users/xbox/Desktop/Rstuff/bsts-7-10-2023", x[i]), 
+    file = file.path("C:/Users/xbox/Desktop/Rstuff/bsts-7-26-2023", x[i]), 
     object = x[i], 
-    bucket = "cryptomlbucket/bsts2"
+    bucket = "cryptomlbucket/TiingoBoosts"
   )
+  print(i)
 }
 toc()

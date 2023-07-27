@@ -100,9 +100,7 @@ ui <- secure_app(dashboardPage(
                                                                                     "1 Hour" = "1hour",
                                                                                     "4 Hour" = "4hour",
                                                                                     "8 Hour" = "8hour",
-                                                                                    "1 Day" = "1day",
-                                                                                    "1 Week" = "7day",
-                                                                                    "1 Month" = '1month')),
+                                                                                    "1 Day" = "1day")),
                          selectInput("select","Pick a crypto to predict", choices = checkbox_list),
                          br(),
                          sliderInput("slider1","Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1),
@@ -204,8 +202,7 @@ ui <- secure_app(dashboardPage(
                                                                                       "1 Hour" = "1hour",
                                                                                       "4 Hour" = "4hour",
                                                                                       "8 Hour" = "8hour",
-                                                                                      "1 Day" = "1day",
-                                                                                      "1 Week" = "7day")),
+                                                                                      "1 Day" = "1day")),
                     sliderInput("slider3", "Select Prediction 'BUY' Threshold", min = 0.1, max = 1, step = 0.05, value = 0.9),
                     actionButton("action4","Predict"),
                     br(),
@@ -382,11 +379,7 @@ ui <- secure_app(dashboardPage(
                     paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
                 ),
                 box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
-                  selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("4 Hour" = "4hour",
-                                                                               "8 Hour" = "8hour",
-                                                                               "1 Day" = "1day",
-                                                                               "1 Week" = "7day",
-                                                                               "1 Month" = '1month')),
+                  selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("4 Hour" = "4hour")),
                   br(),
                   selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
                   br(),
@@ -396,7 +389,7 @@ ui <- secure_app(dashboardPage(
                   br(),
                   sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
                   br(),
-                  sliderInput("stopLossBinanceAutomation", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
+                  sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
                   br(),
                   sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
 
@@ -410,7 +403,7 @@ ui <- secure_app(dashboardPage(
                     selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
                     dataTableOutput("activeAutomationInfo")
                 ),
-                box(title = "Volume % Change From Mean 5min Volume Over Past 2days", status = "primary", solidHeader = TRUE,width=4,
+                box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
                   gaugeOutput("volumeGauge")
                 ),
                 actionBttn(inputId = 'submitBinanceAutomation',
@@ -596,8 +589,8 @@ server <- function(input, output, session) {
     predict.tomorrow.multiple(input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
     dt.colored = datatable(predictions.df.comb,
                            rownames = FALSE,
-                           extensions = "Buttons",
-                           options = list(paging = FALSE, searching = FALSE, dom = 'Bfrtip', buttons = c('csv'))) %>%
+                           extensions = c("Buttons","FixedHeader"),
+                           options = list(paging = FALSE,fixedHeader = TRUE, searching = FALSE, dom = 'Bfrtip', buttons = c('csv'))) %>%
       formatStyle("Signal",
                   backgroundColor = styleEqual(c("DON'T BUY SIGNAL", "BUY SIGNAL"), c('darkred','lightgreen')))
     output$multipleOutput = renderDataTable(dt.colored)
@@ -676,6 +669,7 @@ server <- function(input, output, session) {
     vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
     
     vol = rbind(vol2, vol1)
+    vol = vol[nrow(vol)-25:nrow(vol),]
     m.vol = mean(vol$volume)
     vol.now = vol$volume[(nrow(vol)-1)]
     
@@ -703,7 +697,7 @@ server <- function(input, output, session) {
                    Confidence = input$confidenceThresholdAutomation,
                    Percentage = input$sliderBalanceUsed,
                    TakeProfit = input$takeProfitBinanceAutomation,
-                   StopLoss = input$stopLossBinanceAutomation,
+                   StopLoss = (input$stopLossBinanceAutomation / 100) * input$takeProfitBinanceAutomation,
                    Active = TRUE
                    )
     saveRDS(x, file = paste0(tempdir(), "/x.rds"))
@@ -754,6 +748,10 @@ server <- function(input, output, session) {
       object = paste0(input$checkGroupBinance,".rds"),
       bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     )
+    
+    shinyalert("Success",
+               "Your Automation Was Successfully Stopped!",
+               type = 'success')
   })
   observeEvent(input$selectTradesPlaced, {
     y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
