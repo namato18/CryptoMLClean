@@ -3,7 +3,6 @@ library(dplyr)
 library(stringr)
 
 str1 = readRDS('tickers/str1.rds')
-
 x = market_exchange_info()$symbols
 
 ind = which(x$symbol %in% str1)

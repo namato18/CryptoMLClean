@@ -460,16 +460,19 @@ server <- function(input, output, session) {
       secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
       api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
       binance::authenticate(key = api_key,secret = secret)
+      binance::base_url("https://api.binance.com")
     }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
       #Gentlemam
       secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
       api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
       binance::authenticate(key = api_key,secret = secret)
+      binance::base_url("https://api.binance.com")
     }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
       #Gentlemam
       secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
       api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
       binance::authenticate(key = api_key,secret = secret)
+      binance::base_url("https://api.binance.com")
     }
     output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
     output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))

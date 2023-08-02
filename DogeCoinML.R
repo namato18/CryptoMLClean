@@ -612,7 +612,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     
     buyCond1 = predictions.df.pos$C.Score.HIT.TARGET >= SuccessThreshold
     buyCond2 = predictions.df.pos$C.Score.BreakPrevoiusLow <= 0.4
-    buyCond3 = predictions.df.pos$C.Score.BreakPrevoiusLow > 0.6 & predictions.df.pos$Previous.Low < 0.33 
+    buyCond3 = predictions.df.pos$C.Score.BreakPrevoiusLow > 0.4 & predictions.df.pos$Previous.Low < 0.33 
     
     predictions.df.pos$Previous.High = paste0(break.high.perc,"%")
     predictions.df.pos$Previous.Low = paste0(break.low.perc, "%")
