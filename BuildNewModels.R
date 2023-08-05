@@ -138,7 +138,7 @@ test = as.matrix(test)
 
 ###############################
 ############################### SET OUTPUT VALUE
-outcome = BreakL
+outcome = BreakH
 
 outcome.train = outcome[sample.split]
 outcome.test = outcome[!sample.split]
@@ -152,11 +152,19 @@ bst = xgboost(data = train,
               nrounds = 200,
               eta = 0.3,
               verbose = FALSE)
-saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-26-2023/bst_",file.names[i],"BreakL.rds"))
+saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-4-2023/bst_",file.names[i],"BreakH.rds"))
+
+###############################
+############################### SAVE FOR BACKTESTING
+pred = predict(bst, test)
+
+compare = data.frame(cbind(outcome.test, pred))
+
+saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-4-2023/compare_",file.names[i],"BreakH.rds"))
+
+print(paste0(i," out of ",length(file.names)))
 }
-# pred = predict(bst, test)
-# 
-# compare = data.frame(cbind(outcome.test, pred))
+
 # compare$pred.value = 0
 # compare$pred.value[compare$pred >= 0.5] = 1
 # 
