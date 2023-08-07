@@ -395,12 +395,15 @@ ui <- secure_app(dashboardPage(
 
                   
                 ),
-                box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
-                    dataTableOutput("currentAutomation")
+                box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
+                    dataTableOutput('spotAccountBalancesAutomation')
                 ),
+                # box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                #     dataTableOutput("currentAutomation")
+                # ),
                 br(),
-                box(title = "Current Automation Info", status = "primary", solidHeader = TRUE,width=8,
-                    selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
+                box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                    # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
                     dataTableOutput("activeAutomationInfo")
                 ),
                 box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
@@ -421,11 +424,11 @@ ui <- secure_app(dashboardPage(
                            color = 'danger',
                            size = 'lg',
                            block = TRUE),
-                br(),
-                box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
-                    selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
-                    dataTableOutput("tradesPlaced")
-                )
+                br()
+                # box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
+                #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
+                #     dataTableOutput("tradesPlaced")
+                # )
 
               ))
     )
@@ -475,19 +478,41 @@ server <- function(input, output, session) {
       binance::base_url("https://api.binance.com")
     }
     output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+    output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
     output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
     x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    if(length(coins.running) != 0){
-      y = data.frame(Coins = coins.running)
-      output$currentAutomation = renderDataTable(datatable(y))
-      updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-      updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+
       
-    }
+      df.coins.running = data.frame(User = character(),
+                                    Timeframe = character(),
+                                    Coins = character(),
+                                    Target = character(),
+                                    Confidence = character(),
+                                    Percentage = character(),
+                                    TakeProfit = character(),
+                                    StopLoss = character(),
+                                    Active = character())
+      for(z in 1:length(coins.running)){
+        dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+        df.coins.running = rbind(df.coins.running, dfx)
+      }
+      # if(length(coins.running) != 0){
+      y = data.frame(Coins = coins.running)
+      if(length(coins.running > 0)){
+        output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      }else{
+        output$activeAutomationInfo = NULL
+      }
+      # output$currentAutomation = renderDataTable(datatable(y))
+      # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+      # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+      
+      #}
+
  
     
     
@@ -670,20 +695,20 @@ server <- function(input, output, session) {
     vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
     vol1 = vol1[-1,]
     vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
-    
+
     vol = rbind(vol2, vol1)
     vol = vol[nrow(vol)-25:nrow(vol),]
     m.vol = mean(vol$volume)
     vol.now = vol$volume[(nrow(vol)-1)]
-    
+
     vol.compare = (vol.now/m.vol * 100) - 100
-    
+
     output$volumeGauge = renderGauge({
       gauge(vol.compare,
             min = -100,
             max = 100,
             sectors = gaugeSectors(
-              success = c(20, 100), 
+              success = c(20, 100),
               warning = c(-20, 20),
               danger = c(-100, -20)))
     })
@@ -719,11 +744,38 @@ server <- function(input, output, session) {
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     if(length(coins.running) != 0){
       y = data.frame(Coins = coins.running)
-      output$currentAutomation = renderDataTable(datatable(y))
+      # output$currentAutomation = renderDataTable(datatable(y))
     }
     
-    updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-    updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+    # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+    # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+    
+    x = aws.s3::get_bucket_df("cryptomlbucket")
+    
+    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    
+
+      df.coins.running = data.frame(User = character(),
+                                    Timeframe = character(),
+                                    Coins = character(),
+                                    Target = character(),
+                                    Confidence = character(),
+                                    Percentage = character(),
+                                    TakeProfit = character(),
+                                    StopLoss = character(),
+                                    Active = character())
+      for(z in 1:length(coins.running)){
+        dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+        df.coins.running = rbind(df.coins.running, dfx)
+      }
+      if(length(coins.running > 0)){
+        output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      }else{
+        output$activeAutomationInfo = NULL
+      }    
+    
+
     
     shinyalert("Success",
                "Your Automation Was Successfully Started!",
@@ -732,48 +784,98 @@ server <- function(input, output, session) {
   
   observeEvent(input$cancelBinanceAutomation, {
     
-    x = data.frame(User = reactiveValuesToList(res_auth)$user,
-                   Timeframe = input$timeframeAutomation,
-                   Coins = input$checkGroupBinance,
-                   Target = input$sliderAutomationTarget,
-                   Confidence = input$confidenceThresholdAutomation,
-                   Percentage = input$sliderBalanceUsed,
-                   TakeProfit = input$takeProfitBinanceAutomation,
-                   StopLoss = input$stopLossBinanceAutomation,
-                   Active = FALSE
-    )
-    saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+    # x = data.frame(User = reactiveValuesToList(res_auth)$user,
+    #                Timeframe = input$timeframeAutomation,
+    #                Coins = input$checkGroupBinance,
+    #                Target = input$sliderAutomationTarget,
+    #                Confidence = input$confidenceThresholdAutomation,
+    #                Percentage = input$sliderBalanceUsed,
+    #                TakeProfit = input$takeProfitBinanceAutomation,
+    #                StopLoss = input$stopLossBinanceAutomation,
+    #                Active = FALSE
+    # )
+    # saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+    # 
+    # aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+    # 
+    # put_object(
+    #   file = file.path(tempdir(), "x.rds"),
+    #   object = paste0(input$checkGroupBinance,".rds"),
+    #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+    # )
+    aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user))
+    x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
-    
-    put_object(
-      file = file.path(tempdir(), "x.rds"),
-      object = paste0(input$checkGroupBinance,".rds"),
-      bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
-    )
+    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    # if(length(coins.running) != 0){
+      y = data.frame(Coins = coins.running)
+      # output$currentAutomation = renderDataTable(datatable(y))
+      # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+      # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+      
+      x = aws.s3::get_bucket_df("cryptomlbucket")
+      
+      x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+      coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+
+        df.coins.running = data.frame(User = character(),
+                                      Timeframe = character(),
+                                      Coins = character(),
+                                      Target = character(),
+                                      Confidence = character(),
+                                      Percentage = character(),
+                                      TakeProfit = character(),
+                                      StopLoss = character(),
+                                      Active = character())
+        for(z in 1:length(coins.running)){
+          dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+          df.coins.running = rbind(df.coins.running, dfx)
+        }
+        if(length(coins.running > 0)){
+          output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+        }else{
+          output$activeAutomationInfo = NULL
+        }      
+
+    # }
     
     shinyalert("Success",
                "Your Automation Was Successfully Stopped!",
                type = 'success')
   })
-  observeEvent(input$selectTradesPlaced, {
-    y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
-    if(!is.null(y)){
-      y = y %>%
-        select(symbol, time, price, qty, commission, commission_asset, side)
-      output$tradesPlaced = renderDataTable(datatable(y))
-    }
-
-  })
+  # observeEvent(input$selectTradesPlaced, {
+  #   y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
+  #   if(!is.null(y)){
+  #     y = y %>%
+  #       select(symbol, time, price, qty, commission, commission_asset, side)
+  #     output$tradesPlaced = renderDataTable(datatable(y))
+  #   }
+  # 
+  # })
   
-  observeEvent(input$selectActiveAutomation, {
-   active = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(input$selectActiveAutomation,".rds"))
-   if(active[1] == 'ERROR'){
-     return(NULL)
-   }else{
-     output$activeAutomationInfo = renderDataTable(datatable(active))
-   }
-  })
+  # observeEvent(input$selectActiveAutomation, {
+  #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  #   
+  #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # 
+  #     df.coins.running = data.frame(User = character(),
+  #                                   Timeframe = character(),
+  #                                   Coins = character(),
+  #                                   Target = character(),
+  #                                   Confidence = character(),
+  #                                   Percentage = character(),
+  #                                   TakeProfit = character(),
+  #                                   StopLoss = character(),
+  #                                   Active = character())
+  #     for(z in 1:length(coins.running)){
+  #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+  #       df.coins.running = rbind(df.coins.running, dfx)
+  #     }
+  #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  #   
+  # })
   
   observeEvent(input$timeframe,{
     if(input$timeframe == "15min" | input$timeframe == "1hour"){

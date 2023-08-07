@@ -20,6 +20,7 @@ put_object(
   bucket = "cryptomlbucket"
 )
 
+
 # READ OBJECT
 GETBOOST = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = "bst_ZRXUSDT_15min-0.1.rds")
 
@@ -37,3 +38,8 @@ for(i in 1:length(x)){
   print(i)
 }
 toc()
+
+# TRY TO REMOVE A FILE
+aws.s3::delete_object(object = "BTCUSDT.rds", bucket = "cryptomlbucket/Automation/nick")
+
+aws.s3::bucketlist()
