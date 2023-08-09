@@ -407,9 +407,9 @@ ui <- secure_app(dashboardPage(
                     # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
                     dataTableOutput("activeAutomationInfo")
                 ),
-                box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
-                  gaugeOutput("volumeGauge")
-                ),
+                # box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
+                #   gaugeOutput("volumeGauge")
+                # ),
                 actionBttn(inputId = 'submitBinanceAutomation',
                            label = 'Begin Automation',
                            icon = icon('robot'),
