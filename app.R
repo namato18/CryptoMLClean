@@ -480,7 +480,7 @@ server <- function(input, output, session) {
     }
     output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
     output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
-    output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
+    output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
@@ -656,7 +656,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$getLivePrice, {
-    output$livePrice = renderText(round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4))
+    output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
   })
   
   observeEvent(input$submitBinance, {
@@ -686,7 +686,7 @@ server <- function(input, output, session) {
     percentage = (input$percentSliderBinance / 100)
     quantity_usdt = free_usdt * percentage
     
-    current_coin_price = round(as.numeric(binance::market_average_price(input$selectCoinBinance)$price), digits = 4)
+    current_coin_price = round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4)
     quantity_coin = round(quantity_usdt / current_coin_price, digits = coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance])
     updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
   })

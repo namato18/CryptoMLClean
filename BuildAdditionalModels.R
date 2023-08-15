@@ -22,12 +22,12 @@ str1 = readRDS('tickers/str1.rds')
 # str2 = readRDS('tickers/str2')
 
 # Timeframe = c("4hour","8hour","1day","7day")
-Timeframe = c("15min","1hour")
+Timeframe = c("2hour")
 
 x = list.files(path = '../RiingoPulledData',full.names = TRUE)
 file.names = list.files('../RiingoPulledData')
 file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
-ind = grep(pattern = "1hour|15min", x = file.names)
+ind = grep(pattern = "2hour", x = file.names)
 # ind = ind[-99]
 file.names = file.names[ind]
 x = x[ind]
@@ -51,7 +51,7 @@ for(i in 1:length(file.names)){
   #   # df3 = rbind(df1,df2) %>%
   #   #   select(date, open, high, low, close)
   #   
-    for(j in seq(from=-1, to=-0.1, by = 0.1)){
+    for(j in seq(from=-2, to=2, by = 0.1)){
       df = ls.files[[i]]
       if(nrow(df) < 30){
         next()
@@ -252,13 +252,13 @@ for(i in 1:length(file.names)){
       
 
       
-      saveRDS(df, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/df_",file.names[i],".rds"))
+      saveRDS(df, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/df_",file.names[i],".rds"))
       
       ### Remove OPEN HIGH LOW CLOSE
       df = df[,-c(1:4)]
       
-      saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/outcome_",file.names[i],j,".rds"))
-      # saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/outcome_",file.names[i],"BreakL",".rds"))
+      saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/outcome_",file.names[i],j,".rds"))
+      # saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/outcome_",file.names[i],"BreakL",".rds"))
       
       
       
@@ -270,8 +270,8 @@ for(i in 1:length(file.names)){
       set.seed(123)
       sample.split = sample(c(TRUE,FALSE), nrow(df), replace = TRUE, prob=c(0.8,0.2))
       
-      saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/sample.split_",file.names[i],j,".rds"))
-      # saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/sample.split_",file.names[i],"BreakL",".rds"))
+      saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/sample.split_",file.names[i],j,".rds"))
+      # saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/sample.split_",file.names[i],"BreakL",".rds"))
       
       
       # Remvoe last sample int since I said so
@@ -283,10 +283,10 @@ for(i in 1:length(file.names)){
       train = as.matrix(train)
       test = as.matrix(test)
       
-      saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/train_",file.names[i],j,".rds"))
-      saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/test_",file.names[i],j,".rds"))
-      # saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/train_",file.names[i],"BreakL",".rds"))
-      # saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/test_",file.names[i],"BreakL",".rds"))
+      saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/train_",file.names[i],j,".rds"))
+      saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/test_",file.names[i],j,".rds"))
+      # saveRDS(train, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/train_",file.names[i],"BreakL",".rds"))
+      # saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/test_",file.names[i],"BreakL",".rds"))
       
       outcome.train = outcome[sample.split]
       outcome.test = outcome[!sample.split]
@@ -301,8 +301,8 @@ for(i in 1:length(file.names)){
                     nrounds = 300,
                     eta = 0.3,
                     verbose = FALSE)
-      saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/bst_",file.names[i],j,".rds"))
-      # saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/bst_",file.names[i],"BreakL",".rds"))
+      saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/bst_",file.names[i],j,".rds"))
+      # saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/bst_",file.names[i],"BreakL",".rds"))
       print(paste0(file.names[i],j))
     }
   #}

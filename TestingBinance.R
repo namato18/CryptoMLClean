@@ -84,3 +84,23 @@ order2 <- spot_new_order(
   stop_price = 0.073,
 )
 
+x = spot_new_order(
+  order_type = "LIMIT",
+  symbol = "FETUSDT",
+  side = "BUY",
+  quantity = 5,
+  price = binance::market_price_ticker("FETUSDT")$price,
+  time_in_force = "GTC",
+  test = FALSE
+)
+
+x = spot_new_order(
+  order_type = "LIMIT",
+  symbol = "FETUSDT",
+  side = "SELL",
+  quantity = 5,
+  price = binance::market_price_ticker("FETUSDT")$price,
+  time_in_force = "GTC",
+  test = FALSE
+)
+

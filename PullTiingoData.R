@@ -15,8 +15,8 @@ str1 = str1[-61]
 
 ########################################## SET TIMEFRAMES
 ########################################## 
-timeframes = c("4hour","8hour","1day")
-timeframes.n = c(240,480,1440)
+timeframes = c("2hour")
+timeframes.n = c(120)
 
 ########################################## SET UP LOOPS, ONCE FOR EACH TIMEFRAME
 ########################################## 

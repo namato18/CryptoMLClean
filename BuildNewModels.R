@@ -14,6 +14,11 @@ x = list.files(path = '../RiingoPulledData',full.names = TRUE)
 file.names = list.files('../RiingoPulledData')
 file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
 
+ind = grep(pattern = "2hour", x = file.names)
+
+x = x[ind]
+file.names = file.names[ind]
+
 ls.files = lapply(x, read.csv)
 
 file.names.short = str_match(string = file.names, pattern = "(.*USDT).*")[,2]
@@ -138,7 +143,7 @@ test = as.matrix(test)
 
 ###############################
 ############################### SET OUTPUT VALUE
-outcome = BreakH
+outcome = BreakL
 
 outcome.train = outcome[sample.split]
 outcome.test = outcome[!sample.split]
@@ -152,7 +157,7 @@ bst = xgboost(data = train,
               nrounds = 200,
               eta = 0.3,
               verbose = FALSE)
-saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-4-2023/bst_",file.names[i],"BreakH.rds"))
+saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/bst_",file.names[i],"BreakL.rds"))
 
 ###############################
 ############################### SAVE FOR BACKTESTING
@@ -160,7 +165,7 @@ pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
 
-saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-4-2023/compare_",file.names[i],"BreakH.rds"))
+saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/compare_",file.names[i],"BreakL.rds"))
 
 print(paste0(i," out of ",length(file.names)))
 }
