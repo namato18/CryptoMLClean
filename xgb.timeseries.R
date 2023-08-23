@@ -8,16 +8,16 @@ library(quantmod)
 library(CandleStickPattern)
 # predict_week = function(symbol){
 # symbol = 'arbusdt'
-str2 = readRDS('tickers/str.new.coins.rds')
-# str1 = readRDS('tickers/str1')
-# str2 = readRDS('tickers/str2')
+# str2 = readRDS('tickers/str.new.coins.rds')
+str2 = readRDS('tickers/fx.pair.names.rds')
+str2 = unique(str2)
 
+# str2 = readRDS('tickers/str2')
 # checkbox_list = setNames(str2, str1)
 timeframe = c('daily','weekly')
 
 for(j in 1:length(str2)){
   for(i in 1:length(timeframe)){
-    
     symbol = str2[j]
     
     data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = '6fbd6ce7c9e035489f6238bfab127fcedbe34ac2', periodicity = timeframe[i]))
@@ -32,6 +32,9 @@ for(j in 1:length(str2)){
     colnames(data) = c('open','high','low','close')
     
     data$time = row.names(data)
+    
+    data$time = gsub(pattern = "X", replacement = "", x = data$time)
+    data$time = gsub(pattern = "\\.", replacement = "-", x = data$time)
     
     # lfiles.names = list.files("TVData_T")
     # lfiles.names = str_replace_all(string = lfiles.names, pattern = '.csv', replacement = "")
@@ -173,7 +176,7 @@ for(j in 1:length(str2)){
     
     # bst = readRDS(paste0('bsts_T/bst_T_',symbol,'.rds'))
     
-    saveRDS(bst, paste0('C:/Users/xbox/Desktop/Rstuff/bsts_T-7-3-2023/bst_T_',symbol,timeframe[i],'.rds'))
+    saveRDS(bst, paste0('C:/Users/xbox/Desktop/Rstuff/bsts_T-8-20-2023/bst_T_',symbol,timeframe[i],'.rds'))
   }
   print(symbol)
 }

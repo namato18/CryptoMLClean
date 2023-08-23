@@ -27,7 +27,6 @@ str1 = str1[-bad_data]
 ########################################## 
 days.back = 700
 for(j in 1:length(str1)){
-  
   # GRAB TIINGO DATA
   df1 = possibly_riingo_prices(ticker = str1[j], resample_frequency = "weekly", end_date = Sys.Date(), start_date = Sys.Date() - days.back)
   df2 = possibly_riingo_prices(ticker = str1[j], resample_frequency = "weekly", end_date = Sys.Date() - days.back, start_date = Sys.Date() - days.back*2)
@@ -42,7 +41,7 @@ for(j in 1:length(str1)){
   }
   
   df = df[,-c(1,8:14)]
-  
+  df = df[,c(1,5,3,4,2,6)]
   # WRITE .CSV
   write.csv(df, paste0("C:/Users/xbox/Desktop/Rstuff/RiingoPulledData/", str1[j],"_weekly.csv"), row.names = FALSE)
   
@@ -52,4 +51,4 @@ for(j in 1:length(str1)){
 
 tictoc::toc()
 
-test = read.csv("C:/Users/xbox/Desktop/Rstuff/RiingoPulledData/AAPL_daily.csv")
+# test = read.csv("C:/Users/xbox/Desktop/Rstuff/RiingoPulledData/AAPL_daily.csv")

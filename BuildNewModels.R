@@ -10,11 +10,18 @@ library(riingo)
 ###############################
 ############################### GET LIST OF ALL DATASETS GATHERED USING TIINGO (COMMENTED BECAUSE NOT LOOPING NOW)
 
+# str1 = readRDS("tickers/str1.rds")
+stock1 = readRDS("tickers/stock1.rds")
+comb.str = paste(str1, collapse = "|")
+comb.stock = paste(stock1, collapse = "|")
+
+comb = paste(comb.str, comb.stock,sep="|")
+
 x = list.files(path = '../RiingoPulledData',full.names = TRUE)
 file.names = list.files('../RiingoPulledData')
 file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
 
-ind = grep(pattern = "2hour", x = file.names)
+ind = grep(pattern = comb, x = file.names)
 
 x = x[ind]
 file.names = file.names[ind]
@@ -23,8 +30,7 @@ ls.files = lapply(x, read.csv)
 
 file.names.short = str_match(string = file.names, pattern = "(.*USDT).*")[,2]
 
-for(i in 1:length(file.names)){
-
+for(i in 759:length(file.names)){
 ###############################
 ############################### READ IN DATASET
 df = ls.files[[i]]
@@ -35,7 +41,10 @@ if(nrow(df) < 30){
 
 ###############################
 ############################### JUST FILTERING OUT UNECESSARY COLUMNS
-df = df[,3:8]
+if(grepl(pattern = "USDT", file.names[i])){
+  df = df[,3:8]
+}
+
 
 ###############################
 ############################### CHANGE NAMES
@@ -157,7 +166,7 @@ bst = xgboost(data = train,
               nrounds = 200,
               eta = 0.3,
               verbose = FALSE)
-saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/bst_",file.names[i],"BreakL.rds"))
+saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-16-2023/bst_",file.names[i],"BreakL.rds"))
 
 ###############################
 ############################### SAVE FOR BACKTESTING
@@ -165,7 +174,7 @@ pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
 
-saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-14-2023/compare_",file.names[i],"BreakL.rds"))
+saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-16-2023/compare_",file.names[i],"BreakL.rds"))
 
 print(paste0(i," out of ",length(file.names)))
 }

@@ -12,6 +12,7 @@ library(binance)
 library(purrr)
 library(shinymanager)
 library(flexdashboard)
+library(shinybusy)
 # MINE
 # secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
 # api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
@@ -74,6 +75,7 @@ ui <- secure_app(dashboardPage(
     tabItems(
       tabItem(tabName = "create",
               fluidPage(
+                add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 verbatimTextOutput("auth_output"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
@@ -184,6 +186,7 @@ ui <- secure_app(dashboardPage(
       #         ),
       tabItem(tabName = "predictMultiple",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 strong(h1("Predict Next Candle (Multiple):")),
                 box(width = 10,
@@ -250,6 +253,7 @@ ui <- secure_app(dashboardPage(
 
       tabItem(tabName = "inputCoin",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 strong(h1("Generate Model using TradingView Data:")),
                 box(width = 10,
@@ -295,6 +299,7 @@ ui <- secure_app(dashboardPage(
       
       tabItem(tabName = "predictNextWeek",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 strong(h1("Predict Next 7 Days/Weeks:")),
                 box(width=10,
@@ -324,6 +329,7 @@ ui <- secure_app(dashboardPage(
       
       tabItem(tabName = "binance",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 strong(h1("Binance Integration")),
                 box(width=10,
@@ -373,6 +379,7 @@ ui <- secure_app(dashboardPage(
       ),
       tabItem(tabName = "automation",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
                 strong(h1("Binance Automation")),
                 box(width=10,
@@ -883,6 +890,14 @@ server <- function(input, output, session) {
       updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1)
     }else{
       updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.2)
+    }
+  })
+  
+  observeEvent(input$timeframeAutomation, {
+    if(input$timeframeAutomation == "1hour"){
+      updateSliderInput(inputId = "sliderAutomationTarget",label="Select Target Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1)
+    }else if(input$timeframeAutomation == "4hour"){
+      updateSliderInput(inputId = "sliderAutomationTarget",label="Select Target Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.2)
     }
   })
   
