@@ -540,18 +540,18 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     
     ###############################
     ############################### DEFINE OTHER INPUT VALUES
-    df$OH = (df$High - df$Open)/df$High * 100
-    df$CH = (df$Close - df$Open)/ df$Close * 100
-    df$LH = (df$High - df$Low) / df$High * 100
+    df$OH = (df$High - df$Open)/df$Open * 100
+    df$CH = (df$Close - df$Open)/ df$Open * 100
+    df$LH = (df$High - df$Low) / df$Low * 100
     df$LC = (df$Close - df$Low) / df$Low * 100
     
-    df$HMA = (df$High - df$MA20)/ df$High * 100
-    df$LMA = (df$Low - df$MA20)/ df$Low * 100
-    df$CMA = (df$Close - df$MA20)/ df$Close * 100
-    df$VMA = (df$Volume - df$VMA20) / df$Volume * 100
+    df$HMA = (df$High - df$MA20)/ df$MA20 * 100
+    df$LMA = (df$Low - df$MA20)/ df$MA20 * 100
+    df$CMA = (df$Close - df$MA20)/ df$MA20 * 100
+    df$VMA = (df$Volume - df$VMA20) / df$VMA20 * 100
     
     lag1Vol = Lag(df$Volume, 1)
-    df$VolumeD = (df$Volume - lag1Vol)/df$Volume * 100
+    df$VolumeD = (df$Volume - lag1Vol)/lag1Vol * 100
     
     ###############################
     ############################### DETERMINE OUTCOME VALUES

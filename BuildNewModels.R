@@ -10,7 +10,7 @@ library(riingo)
 ###############################
 ############################### GET LIST OF ALL DATASETS GATHERED USING TIINGO (COMMENTED BECAUSE NOT LOOPING NOW)
 
-# str1 = readRDS("tickers/str1.rds")
+str1 = readRDS("../master.lists/clean.list.rds")
 stock1 = readRDS("tickers/stock1.rds")
 comb.str = paste(str1, collapse = "|")
 comb.stock = paste(stock1, collapse = "|")
@@ -21,7 +21,7 @@ x = list.files(path = '../RiingoPulledData',full.names = TRUE)
 file.names = list.files('../RiingoPulledData')
 file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
 
-ind = grep(pattern = comb, x = file.names)
+ind = grep(pattern = comb, x = file.names, ignore.case = TRUE)
 
 x = x[ind]
 file.names = file.names[ind]
@@ -30,7 +30,7 @@ ls.files = lapply(x, read.csv)
 
 file.names.short = str_match(string = file.names, pattern = "(.*USDT).*")[,2]
 
-for(i in 759:length(file.names)){
+for(i in 1:length(file.names)){
 ###############################
 ############################### READ IN DATASET
 df = ls.files[[i]]
@@ -86,23 +86,24 @@ df$P3C = C1 + C2 + C3
 
 ###############################
 ############################### DEFINE OTHER INPUT VALUES
-df$OH = (df$High - df$Open)/df$High * 100
-df$CH = (df$Close - df$Open)/ df$Close * 100
-df$LH = (df$High - df$Low) / df$High * 100
+df$OH = (df$High - df$Open)/df$Open * 100
+df$CH = (df$Close - df$Open)/ df$Open * 100
+df$LH = (df$High - df$Low) / df$Low * 100
 df$LC = (df$Close - df$Low) / df$Low * 100
 
-df$HMA = (df$High - df$MA20)/ df$High * 100
-df$LMA = (df$Low - df$MA20)/ df$Low * 100
-df$CMA = (df$Close - df$MA20)/ df$Close * 100
-df$VMA = (df$Volume - df$VMA20) / df$Volume * 100
+df$HMA = (df$High - df$MA20)/ df$MA20 * 100
+df$LMA = (df$Low - df$MA20)/ df$MA20 * 100
+df$CMA = (df$Close - df$MA20)/ df$MA20 * 100
+df$VMA = (df$Volume - df$VMA20) / df$VMA20 * 100
 
 lag1Vol = Lag(df$Volume, 1)
-df$VolumeD = (df$Volume - lag1Vol)/df$Volume * 100
+df$VolumeD = (df$Volume - lag1Vol)/lag1Vol * 100
 
 ###############################
 ############################### DETERMINE OUTCOME VALUES
 BreakL = NA
 BreakH = NA
+CloseGR = NA
 
 for(k in 2:(nrow(df))){
   if(df$Low[k] <= df$Low[k-1]){
@@ -116,6 +117,12 @@ for(k in 2:(nrow(df))){
   }else{
     BreakH[k] = 0
   }
+  
+  if(df$Close[k] > df$Open[k]){
+    CloseGR[k] = 1
+  }else{
+    CloseGR[k] = 0
+  }
 }
 
 BreakH = c(BreakH, NA)
@@ -123,12 +130,15 @@ BreakH = BreakH[-1]
 
 BreakL = c(BreakL, NA)
 BreakL = BreakL[-1]
+
+CloseGR = c(CloseGR, NA)
+CloseGR = CloseGR[-1]
 ###############################
 ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
 df = df[-c(1:20,nrow(df)),-c(1:5)]
 BreakL = BreakL[-c(1:20,length(BreakL))]
 BreakH = BreakH[-c(1:20,length(BreakH))]
-
+CloseGR = CloseGR[-c(1:20,length(CloseGR))]
 
 ###############################
 ############################### ROUND ALL INPUTS TO 2 DIGITS
@@ -152,7 +162,7 @@ test = as.matrix(test)
 
 ###############################
 ############################### SET OUTPUT VALUE
-outcome = BreakL
+outcome = CloseGR
 
 outcome.train = outcome[sample.split]
 outcome.test = outcome[!sample.split]
@@ -166,7 +176,7 @@ bst = xgboost(data = train,
               nrounds = 200,
               eta = 0.3,
               verbose = FALSE)
-saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-16-2023/bst_",file.names[i],"BreakL.rds"))
+saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-24-2023/bst_",file.names[i],"CloseGR.rds"))
 
 ###############################
 ############################### SAVE FOR BACKTESTING
@@ -174,7 +184,7 @@ pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
 
-saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-16-2023/compare_",file.names[i],"BreakL.rds"))
+saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-24-2023/compare_",file.names[i],"CloseGR.rds"))
 
 print(paste0(i," out of ",length(file.names)))
 }
