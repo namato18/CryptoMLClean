@@ -13,13 +13,15 @@ library(purrr)
 library(shinymanager)
 library(flexdashboard)
 library(shinybusy)
+library(shinyjs)
+
 # MINE
 # secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
 # api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
 
 credentials <- data.frame(
-  user = c('gentlemam1','gentlemam2','gentlemam3','nick',"shiny", "shinymanager"),
-  password = c("gentlemam1234","gentlemam1234","gentlemam1234","123","azerty", "12345"),
+  user = c('trial','gentlemam1','gentlemam2','gentlemam3','nick',"shiny", "shinymanager"),
+  password = c('123',"gentlemam1234","gentlemam1234","gentlemam1234","123","azerty", "12345"),
   stringsAsFactors = FALSE
 )
 
@@ -75,6 +77,7 @@ ui <- secure_app(dashboardPage(
     tabItems(
       tabItem(tabName = "create",
               fluidPage(
+                useShinyjs(),
                 add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 verbatimTextOutput("auth_output"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
@@ -455,11 +458,18 @@ server <- function(input, output, session) {
     reactiveValuesToList(res_auth)$user
   })
   
+  
   observe({
+    
     if(is.null(reactiveValuesToList(res_auth)$user)){
       
-    }else if(reactiveValuesToList(res_auth)$user == 'nick'){
+    }else if(reactiveValuesToList(res_auth)$user == 'nick' | reactiveValuesToList(res_auth)$user == 'trial'){
       # MINE
+      if(reactiveValuesToList(res_auth)$user == 'trial'){
+        disable("submitBinanceAutomation")
+        disable("cancelBinanceAutomation")
+        disable("submitBinance")
+      }
       
       secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
       api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
