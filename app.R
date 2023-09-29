@@ -939,6 +939,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$cancelOrder, {
+    
     if(is.null(openOrders.df$data)){
       shinyalert("Error",
                  "There are no active orders!",
@@ -948,12 +949,14 @@ server <- function(input, output, session) {
       print(openOrders.df$data$symbol[ind])
       print(openOrders.df$data$order_id[ind])
       x = possibly_spot_order_cancel(openOrders.df$data$symbol[ind], order_id = openOrders.df$data$order_id[ind] )
-      
+
       if(x[1] != "ERROR"){
         shinyalert("Success",
                    "Your Order Was Successfully Canceled!",
                    type = 'success')
         openOrders.df$data = openOrders.df$data = openOrders.df$data[-ind,]
+        aws.s3::delete_object(object = paste0(reactiveValuesToList(res_auth)$user,".rds"), bucket = paste0("cryptomlbucket/ActiveAutomation"))
+
       }else{
         shinyalert("Error",
                    "Your Order Was Not Canceled!",
