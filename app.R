@@ -59,16 +59,16 @@ ui <- secure_app(dashboardPage(
   ),
   dashboardSidebar(
     sidebarMenu(id = "tabs",
-      menuItem(text = "Overview/Backtesting", tabName = "create", icon = icon("house")),
-      menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
-      menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
-      menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
-      menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
-      menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
-      
-      
-      # menuItem("Most Likely Outcome", tabName = "likely")
-      
+                menuItem(text = "Overview/Backtesting", tabName = "create", icon = icon("house")),
+                menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
+                menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
+                menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
+                menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
+                menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
+                
+                
+                # menuItem("Most Likely Outcome", tabName = "likely")
+                
     )
   ),
   dashboardBody(
@@ -420,6 +420,14 @@ ui <- secure_app(dashboardPage(
                     # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
                     dataTableOutput("activeAutomationInfo"),
                 ),
+                box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
+                    selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Timeframe", choices = list("1 week" = 7,
+                                                                                                                       "2 weeks" = 14,
+                                                                                                                       "1 month" = 28)),
+                    numericInput(inputId = "feeInput", label = "Fee per Transaction", value = 0),
+                    actionButton(inputId = "shortBacktest", label = "Generate Backtest"),
+                    dataTableOutput("shortBacktestTable")
+                ),
                 box(title = "Open Orders", status = "primary", solidHeader = TRUE,width=12,
                     dataTableOutput("openOrders"),
                     actionButton(inputId = "cancelOrder", label = "Cancel Order")
@@ -502,7 +510,7 @@ server <- function(input, output, session) {
       binance::authenticate(key = api_key,secret = secret)
       binance::base_url("https://api.binance.com")
     }
-  
+    
     
     output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
     output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
@@ -531,9 +539,13 @@ server <- function(input, output, session) {
     y = data.frame(Coins = coins.running)
     if(length(coins.running > 0)){
       output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      assign("df.coins.running",df.coins.running,.GlobalEnv)
+      
     }else{
       output$activeAutomationInfo = NULL
     }
+    
+    print(df.coins.running)
     
     # output$currentAutomation = renderDataTable(datatable(y))
     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
@@ -816,6 +828,7 @@ server <- function(input, output, session) {
     }
     if(length(coins.running > 0)){
       output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      assign("df.coins.running",df.coins.running,.GlobalEnv)
     }else{
       output$activeAutomationInfo = NULL
     }    
@@ -879,6 +892,8 @@ server <- function(input, output, session) {
     }
     if(length(coins.running > 0)){
       output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      assign("df.coins.running",df.coins.running,.GlobalEnv)
+      
     }else{
       output$activeAutomationInfo = NULL
     }      
@@ -949,23 +964,34 @@ server <- function(input, output, session) {
       print(openOrders.df$data$symbol[ind])
       print(openOrders.df$data$order_id[ind])
       x = possibly_spot_order_cancel(openOrders.df$data$symbol[ind], order_id = openOrders.df$data$order_id[ind] )
-
+      
       if(x[1] != "ERROR"){
         shinyalert("Success",
                    "Your Order Was Successfully Canceled!",
                    type = 'success')
         openOrders.df$data = openOrders.df$data = openOrders.df$data[-ind,]
         aws.s3::delete_object(object = paste0(reactiveValuesToList(res_auth)$user,".rds"), bucket = paste0("cryptomlbucket/ActiveAutomation"))
-
+        
       }else{
         shinyalert("Error",
                    "Your Order Was Not Canceled!",
                    type = 'error')
       }
     }
-
     
     
+    
+  })
+  
+  observeEvent(input$shortBacktest, {
+    
+    timeframe = input$shortBacktestTimeframe
+    df = df.coins.running
+    
+    x = BacktestAutomation(df,reactiveValuesToList(res_auth)$user, timeframe)
+    
+    output$shortBacktestTable = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
+    print(x$PL)
   })
   
 }

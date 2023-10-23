@@ -9,6 +9,7 @@ library(CandleStickPattern)
 library(plotly)
 library(chron)
 library(aws.s3)
+library(dplyr)
 
 readRenviron(".Renviron")
 Sys.setenv(TZ='UTC')
@@ -44,52 +45,52 @@ getTimeRemaining = function(timeframe){
   
   utcTime = lubridate::now(tzone = 'UTC')
   utcTime = format(utcTime, format = "%H:%M:%S")
-if(timeframe == '4hour'){
-  if(utcTime >= chron(times="20:00:00")){
+  if(timeframe == '4hour'){
+    if(utcTime >= chron(times="20:00:00")){
+      remainingTime = chron(times="23:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="16:00:00")){
+      remainingTime = chron(times="19:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="12:00:00")){
+      remainingTime = chron(times="15:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="08:00:00")){
+      remainingTime = chron(times="11:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="04:00:00")){
+      remainingTime = chron(times="7:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="00:00:00")){
+      remainingTime = chron(times="3:59:59") - utcTime
+      return(remainingTime)
+    }
+  }
+  if(timeframe == '8hour'){
+    if(utcTime >= chron(times="16:00:00")){
+      remainingTime = chron(times="23:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="08:00:00")){
+      remainingTime = chron(times="15:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="00:00:00")){
+      remainingTime = chron(times="7:59:59") - utcTime
+      return(remainingTime)
+    }
+  }
+  if(timeframe == '1day'){
     remainingTime = chron(times="23:59:59") - utcTime
     return(remainingTime)
+    
   }
-  if(utcTime >= chron(times="16:00:00")){
-    remainingTime = chron(times="19:59:59") - utcTime
-    return(remainingTime)
-  }
-  if(utcTime >= chron(times="12:00:00")){
-    remainingTime = chron(times="15:59:59") - utcTime
-    return(remainingTime)
-  }
-  if(utcTime >= chron(times="08:00:00")){
-    remainingTime = chron(times="11:59:59") - utcTime
-    return(remainingTime)
-  }
-  if(utcTime >= chron(times="04:00:00")){
-    remainingTime = chron(times="7:59:59") - utcTime
-    return(remainingTime)
-  }
-  if(utcTime >= chron(times="00:00:00")){
-    remainingTime = chron(times="3:59:59") - utcTime
-    return(remainingTime)
-  }
-}
-if(timeframe == '8hour'){
-  if(utcTime >= chron(times="16:00:00")){
-    remainingTime = chron(times="23:59:59") - utcTime
-    return(remainingTime)
-  }
-  if(utcTime >= chron(times="08:00:00")){
-    remainingTime = chron(times="15:59:59") - utcTime
-    return(remainingTime)
-  }
-  if(utcTime >= chron(times="00:00:00")){
-    remainingTime = chron(times="7:59:59") - utcTime
-    return(remainingTime)
-  }
-}
-if(timeframe == '1day'){
-    remainingTime = chron(times="23:59:59") - utcTime
-    return(remainingTime)
   
-}
-
 }
 
 
@@ -103,128 +104,128 @@ if(timeframe == '1day'){
 
 
 createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timeframe, TP=0){
-
-# Symbol = 'ETHUSDT'
-# Timeframe = '4hour'
-# TargetIncreasePercent = "1"
-# SuccessThreshold = '0.9'
-# df = readRDS(paste0("bsts/df_",'ETHUSD','4hour',".rds"))
-# sample.split = readRDS(paste0("bsts/sample.split_",'ETHUSD','4hour',"1",".rds"))
-# outcome = readRDS(paste0("bsts/outcome_",'ETHUSD','4hour',"1",".rds"))
-# test = readRDS(paste0("bsts/test_",'ETHUSD','4hour',"1",".rds"))
-# train = readRDS(paste0("bsts/train_",'ETHUSD','4hour',"1",".rds"))
+  
+  # Symbol = 'ETHUSDT'
+  # Timeframe = '4hour'
+  # TargetIncreasePercent = "1"
+  # SuccessThreshold = '0.9'
+  # df = readRDS(paste0("bsts/df_",'ETHUSD','4hour',".rds"))
+  # sample.split = readRDS(paste0("bsts/sample.split_",'ETHUSD','4hour',"1",".rds"))
+  # outcome = readRDS(paste0("bsts/outcome_",'ETHUSD','4hour',"1",".rds"))
+  # test = readRDS(paste0("bsts/test_",'ETHUSD','4hour',"1",".rds"))
+  # train = readRDS(paste0("bsts/train_",'ETHUSD','4hour',"1",".rds"))
   
   
-df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("df_",Symbol,"_",Timeframe,".rds"))
-sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("sample.split_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("outcome_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-# train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-
+  df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("df_",Symbol,"_",Timeframe,".rds"))
+  sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("sample.split_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("outcome_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  # train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
   
-# df = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/df_",Symbol,"_",Timeframe,".rds"))
-# sample.split = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/sample.split_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-# outcome = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/outcome_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-# test = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-# train = readRDS(paste0("bsts/train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
-
-outcome.train = outcome[sample.split]
-outcome.test = outcome[!sample.split]
-
-
-assign('train',train,.GlobalEnv)
-
-bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-# bst = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-
-# bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
-
-# Predict
-predictions = predict(bst, test)
-Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
-Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
-Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
-compare = data.frame("Actual" = outcome.test,
-                     "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
-                     "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
-                     "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
-                     "Confidence.Score" = round(predictions, digits = 4),
-                     "Signal" = NA)
-
-# df$DBreakLow = NA
-# df$BreakHigh = NA
-# 
-# for(i in 2:(nrow(df)-1)){
-#   if(df$Low[i] <= df$Low[i-1]){
-#     df$DBreakLow[i+1] = 0
-#   }else{
-#     df$DBreakLow[i+1] = 1
-#   }
-# 
-#   if(df$High[i] >= df$High[i-1]){
-#     df$BreakHigh[i+1] = 1
-#   }else{
-#     df$BreakHigh[i+1] = 0
-#   }
-# }
-# 
-# DBreakLow.test = df$DBreakLow[which(!sample.split)]
-# BreakHigh.test = df$BreakHigh[which(!sample.split)]
-
-
+  
+  # df = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/df_",Symbol,"_",Timeframe,".rds"))
+  # sample.split = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/sample.split_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  # outcome = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/outcome_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  # test = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  # train = readRDS(paste0("bsts/train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
+  
+  outcome.train = outcome[sample.split]
+  outcome.test = outcome[!sample.split]
+  
+  
+  assign('train',train,.GlobalEnv)
+  
+  bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  # bst = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+  
+  # bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
+  
+  # Predict
+  predictions = predict(bst, test)
+  Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
+  Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
+  Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
+  compare = data.frame("Actual" = outcome.test,
+                       "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
+                       "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
+                       "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
+                       "Confidence.Score" = round(predictions, digits = 4),
+                       "Signal" = NA)
+  
+  # df$DBreakLow = NA
+  # df$BreakHigh = NA
+  # 
+  # for(i in 2:(nrow(df)-1)){
+  #   if(df$Low[i] <= df$Low[i-1]){
+  #     df$DBreakLow[i+1] = 0
+  #   }else{
+  #     df$DBreakLow[i+1] = 1
+  #   }
+  # 
+  #   if(df$High[i] >= df$High[i-1]){
+  #     df$BreakHigh[i+1] = 1
+  #   }else{
+  #     df$BreakHigh[i+1] = 0
+  #   }
+  # }
+  # 
+  # DBreakLow.test = df$DBreakLow[which(!sample.split)]
+  # BreakHigh.test = df$BreakHigh[which(!sample.split)]
+  
+  
   compare$Signal[compare$Confidence.Score >= SuccessThreshold] = 1
   compare$Signal[compare$Confidence.Score < SuccessThreshold] = 0
   
   compare$profit = NA
   compare$profit[compare$Actual.Percent.High >= TargetIncreasePercent | compare$Actual.Percent.Close > 0] = 1
   compare$profit[compare$Actual.Percent.High < TargetIncreasePercent & compare$Actual.Percent.Close < 0] = 0
-
-
-
-compare = na.omit(compare)
-
-
-accuracy = length(which(compare$Actual == compare$Signal)) / nrow(compare) * 100
-print(accuracy)
-
-
-if(TP == 0){
-  examine = compare[compare$Signal == 1, ]
-  accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
-  print(accuracy2)
-}else{
-
-  examine = compare[compare$Signal == 1, ]
-  winning.trades = examine[examine$Actual == 1,]
-  winning.trades$Actual.Percent.High[winning.trades$Actual.Percent.High > TP ] = TP
-  winning.trades.above = winning.trades[winning.trades$Actual.Percent.High == TP,]
-  winning.trades.below = winning.trades[winning.trades$Actual.Percent.High < TP,]
-  winning.sum.below = sum(as.numeric(as.character(winning.trades.below$Actual.Percent.Close)))
-  winning.sum.above = sum(as.numeric(as.character(winning.trades.above$Actual.Percent.High)))
-  winning.sum = winning.sum.above + winning.sum.below
-  # missed.trades = examine[examine$Actual == 0,]
-  # missed.trades$Actual.Percent.Close[missed.trades$Actual.Percent.Close < SL] = SL
-  # missed.sum = sum(as.numeric(as.character(missed.trades$Actual.Percent.Close)))
-  accuracy2 = winning.sum
-  # accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
-  print(accuracy2)
-}
-
-
-yes.buy = compare[compare$Signal == 1, ]
-yes.buy.above.zero = length(which(yes.buy$Actual == 0 & yes.buy$Actual.Percent.Close > 0))
-yes.buy.correct.perc = (length(which(yes.buy$Signal == yes.buy$Actual)) + yes.buy.above.zero)  / nrow(yes.buy) * 100
-
-no.buy = compare[compare$Signal == 0, ]
-no.buy.correct.perc = length(which(no.buy$Signal == no.buy$Actual)) / nrow(no.buy) * 100
-
-
-assign('yes.buy.correct.perc',yes.buy.correct.perc,.GlobalEnv)
-assign("no.buy.correct.perc",no.buy.correct.perc,.GlobalEnv)
-# assign("overall.accuracy",accuracy,.GlobalEnv)
-assign("compare",compare,.GlobalEnv)
-assign("sum.percentage",accuracy2,.GlobalEnv)
-assign('bst',bst,.GlobalEnv)
+  
+  
+  
+  compare = na.omit(compare)
+  
+  
+  accuracy = length(which(compare$Actual == compare$Signal)) / nrow(compare) * 100
+  print(accuracy)
+  
+  
+  if(TP == 0){
+    examine = compare[compare$Signal == 1, ]
+    accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
+    print(accuracy2)
+  }else{
+    
+    examine = compare[compare$Signal == 1, ]
+    winning.trades = examine[examine$Actual == 1,]
+    winning.trades$Actual.Percent.High[winning.trades$Actual.Percent.High > TP ] = TP
+    winning.trades.above = winning.trades[winning.trades$Actual.Percent.High == TP,]
+    winning.trades.below = winning.trades[winning.trades$Actual.Percent.High < TP,]
+    winning.sum.below = sum(as.numeric(as.character(winning.trades.below$Actual.Percent.Close)))
+    winning.sum.above = sum(as.numeric(as.character(winning.trades.above$Actual.Percent.High)))
+    winning.sum = winning.sum.above + winning.sum.below
+    # missed.trades = examine[examine$Actual == 0,]
+    # missed.trades$Actual.Percent.Close[missed.trades$Actual.Percent.Close < SL] = SL
+    # missed.sum = sum(as.numeric(as.character(missed.trades$Actual.Percent.Close)))
+    accuracy2 = winning.sum
+    # accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
+    print(accuracy2)
+  }
+  
+  
+  yes.buy = compare[compare$Signal == 1, ]
+  yes.buy.above.zero = length(which(yes.buy$Actual == 0 & yes.buy$Actual.Percent.Close > 0))
+  yes.buy.correct.perc = (length(which(yes.buy$Signal == yes.buy$Actual)) + yes.buy.above.zero)  / nrow(yes.buy) * 100
+  
+  no.buy = compare[compare$Signal == 0, ]
+  no.buy.correct.perc = length(which(no.buy$Signal == no.buy$Actual)) / nrow(no.buy) * 100
+  
+  
+  assign('yes.buy.correct.perc',yes.buy.correct.perc,.GlobalEnv)
+  assign("no.buy.correct.perc",no.buy.correct.perc,.GlobalEnv)
+  # assign("overall.accuracy",accuracy,.GlobalEnv)
+  assign("compare",compare,.GlobalEnv)
+  assign("sum.percentage",accuracy2,.GlobalEnv)
+  assign('bst',bst,.GlobalEnv)
 }
 
 
@@ -249,14 +250,14 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
   # SuccessThreshold = 0.9
   
   predictions.df.comb = data.frame("Coin" = character(),
-                              "Price Change" = character(),
-                              "C.Score.HIT.TARGET" = character(),
-                              "C.Score.MISS.TARGET" = character(),
-                              "C.Score.BreakPrevoiusHigh" = character(),
-                              "Previous.High" = character(),
-                              "C.Score.BreakPrevoiusLow" = character(),
-                              "Previous.High" = character(),
-                              "Signal" = character())
+                                   "Price Change" = character(),
+                                   "C.Score.HIT.TARGET" = character(),
+                                   "C.Score.MISS.TARGET" = character(),
+                                   "C.Score.BreakPrevoiusHigh" = character(),
+                                   "Previous.High" = character(),
+                                   "C.Score.BreakPrevoiusLow" = character(),
+                                   "Previous.High" = character(),
+                                   "Signal" = character())
   
   
   for(i in 1:length(Symbols)){
@@ -271,7 +272,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     # Modify data to be more useable
     df = df[,4:9]
     df$Percent.Change = NA
-
+    
     colnames(df) = c("Date","Open","High","Low","Close","Volume","Percent.Change")
     df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 1)
     
@@ -311,7 +312,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
               high = ~High, low = ~Low)
     df_candle_plot = df_candle_plot %>% layout(title = paste0('Last 30 candles for ',toupper(Symbols[i])),
                                                xaxis = list(rangeslider = list(visible = F)))
-
+    
     assign(paste0('df_candleplot_',Symbols[i]),df_candle_plot,.GlobalEnv)
     
     # Adding Moving Averages
@@ -385,12 +386,12 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     # df$High = round(df$High, digits = 3)
     # df$Low = round(df$Low, digits = 3)
     
-
+    
     
     # grab second to last entry since that is the most recent closed candle
     df = df[nrow(df)-1,]
     
-
+    
     
     # grab the high/low from the last candle
     prev.high = as.data.frame(df)$High[1]
@@ -401,8 +402,8 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     break.low.perc = round(((prev.low / prev.close) - 1) * 100, digits = 3)
     
     df = df[,-c(1:4)]
-
-
+    
+    
     
     if(Timeframe == "1hour" | Timeframe == "15min"){
       predictions.df.pos = data.frame("Coin" = rep(toupper(Symbols[i]),5),
@@ -453,7 +454,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     predictions.pos = c()
     predictions.neg = c()
     for(j in seq(from = from_, to = to_, by=by_)){
-
+      
       bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",Symbols[i],"_",Timeframe,j,".rds"))
       # bst = readRDS(paste0("../bsts-7-18-2023/bst_",Symbols[i],"_",Timeframe,j,".rds"))
       
@@ -463,9 +464,9 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
       # convert to matrix for predictions
       df = as.matrix(df)
       predict.next = predict(bst, df)
-
       
-
+      
+      
       predictions.pos = c(predictions.pos,predict.next)
     }
     for(j in seq(from = (to_ * -1), to = (from_ * -1), by=by_)){
@@ -592,7 +593,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     ############################### SELECT ONLY CERTAIN INPUTS FOR BUILDING THE MODEL
     df = df %>%
       select("LH","LC","VolumeD","VMA","LMA","HMA","P3C")
-  
+    
     ###############################
     ############################### GRAB LAST FULL CLOSED CANDLE
     df = df[nrow(df)-1,]
@@ -621,7 +622,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     predictions.df.pos$Previous.High = paste0(break.high.perc,"%")
     predictions.df.pos$Previous.Low = paste0(break.low.perc, "%")
     
-
+    
     
     
     predictions.df.pos$Price.Change = paste0(predictions.df.pos$Price.Change,"% or more")
@@ -642,19 +643,19 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     ############ 
     
     
-
+    
     predictions.df.comb = rbind(predictions.df.comb, predictions.df.neg, predictions.df.pos)
     predictions.df.comb$C.Score.MISS.TARGET = 1 - predictions.df.comb$C.Score.HIT.TARGET
     predictions.df.comb$C.Score.HIT.TARGET = round(predictions.df.comb$C.Score.HIT.TARGET, 3)
     predictions.df.comb$C.Score.MISS.TARGET = round(predictions.df.comb$C.Score.MISS.TARGET, 3)
     
-
+    
   }
   assign("predictions.df.comb",predictions.df.comb,.GlobalEnv)
   
   
   
-
+  
   
 }
 
@@ -700,7 +701,7 @@ predict_week = function(symbol, timeframe){
                           low = NA,
                           close = NA)
   }
-
+  
   data.add$time = as.character(data.add$time)
   data = rbind(data, data.add)
   
@@ -710,7 +711,7 @@ predict_week = function(symbol, timeframe){
   
   
   data.xts = as.xts(data.xts)
-
+  
   # Add lagged values
   for(k in 7:21){
     lagging = Lag(data$close, k)
@@ -726,23 +727,23 @@ predict_week = function(symbol, timeframe){
   data$month = lubridate::month(data$time)
   data$day = lubridate::day(data$time)
   
-
+  
   
   data_selected = data[,-c(1:5)]
-
+  
   
   # SPLIT INTO TRAIN AND TEST
   train <- data_selected[1:(nrow(data)-7), ]
   
   pred <- data_selected[((nrow(data) - 7 + 1)):nrow(data), ]
-
+  
   
   
   x_train = as.matrix(train)
   x_pred = as.matrix(pred)
-
+  
   y_train <- data[1:(nrow(data)-7), 4]
-
+  
   # symbol = 'BTC-USD'
   # timeframe = 'daily'
   # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",'btcusdt','daily',".rds"))
@@ -769,28 +770,28 @@ predict_week = function(symbol, timeframe){
   # x = round(x, digits = 0)
   x = cbind(x, times)
   x$times = as.Date(x$times)
-
-if(timeframe == 'daily'){
-  plot.out = ggplot(data = x, aes(x = times)) + 
-    geom_line(aes(y = data_y), color = "blue") +
-    geom_line(aes(y = predicted_y), color = "red") +
-    xlab("Date") +
-    ylab("Price") +
-    ggtitle(paste0("Predicted Stock Price for ",symbol)) +
-    scale_x_date(date_breaks = "1 day", date_labels =  "%d %B") +
-    theme(axis.text.x=element_text(angle=60, hjust=1))
-}else{
-  plot.out = ggplot(data = x, aes(x = times)) + 
-    geom_line(aes(y = data_y), color = "blue") +
-    geom_line(aes(y = predicted_y), color = "red") +
-    xlab("Date") +
-    ylab("Price") +
-    ggtitle(paste0("Predicted Stock Price for ",symbol)) +
-    scale_x_date(date_breaks = "1 week", date_labels =  "%d %B") +
-    theme(axis.text.x=element_text(angle=60, hjust=1))
-}
-
-
+  
+  if(timeframe == 'daily'){
+    plot.out = ggplot(data = x, aes(x = times)) + 
+      geom_line(aes(y = data_y), color = "blue") +
+      geom_line(aes(y = predicted_y), color = "red") +
+      xlab("Date") +
+      ylab("Price") +
+      ggtitle(paste0("Predicted Stock Price for ",symbol)) +
+      scale_x_date(date_breaks = "1 day", date_labels =  "%d %B") +
+      theme(axis.text.x=element_text(angle=60, hjust=1))
+  }else{
+    plot.out = ggplot(data = x, aes(x = times)) + 
+      geom_line(aes(y = data_y), color = "blue") +
+      geom_line(aes(y = predicted_y), color = "red") +
+      xlab("Date") +
+      ylab("Price") +
+      ggtitle(paste0("Predicted Stock Price for ",symbol)) +
+      scale_x_date(date_breaks = "1 week", date_labels =  "%d %B") +
+      theme(axis.text.x=element_text(angle=60, hjust=1))
+  }
+  
+  
   return(plot.out)
 }
 
@@ -820,7 +821,7 @@ build.TV.model <- function(df, timeframe){
   # Symbols = 'ethusd'
   # targetPercentage = "1"
   
-
+  
   
   # Remove uncecessary columns
   df = df[,1:5]
@@ -887,7 +888,7 @@ build.TV.model <- function(df, timeframe){
   for(k in 1:length(candle.list)){
     df = cbind(df, candle.list[[k]])
   }
-
+  
   # Remove unusable rows
   df = df[-(1:20),]
   
@@ -919,12 +920,12 @@ build.TV.model <- function(df, timeframe){
   
   
   outcome = rep(NA, nrow(df))
-
-outcome[df$Percent.Change >= 0.9] = 1
-outcome[df$Percent.Change < 0.9] = 0
-
-outcome = c(outcome, NA)
-outcome = outcome[-1]
+  
+  outcome[df$Percent.Change >= 0.9] = 1
+  outcome[df$Percent.Change < 0.9] = 0
+  
+  outcome = c(outcome, NA)
+  outcome = outcome[-1]
   
   
   
@@ -943,7 +944,7 @@ outcome = outcome[-1]
   set.seed(123)
   sample.split = sample(c(TRUE,FALSE), nrow(df), replace = TRUE, prob=c(0.8,0.2))
   
-
+  
   # saveRDS(sample.split, file = paste0("bsts/sample.split_",file.names[i],j,".rds"))
   
   
@@ -1128,3 +1129,226 @@ outcome = outcome[-1]
   
   
 }
+
+
+
+
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+
+BacktestAutomation <- function(df.active.automation, user, timeframe){
+  
+  # user = "gentlemam1"
+  # 
+  # x = aws.s3::get_bucket_df("cryptomlbucket")
+  # 
+  # x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
+  # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # 
+  # 
+  # df.coins.running = data.frame(User = character(),
+  #                               Timeframe = character(),
+  #                               Coins = character(),
+  #                               Target = character(),
+  #                               Confidence = character(),
+  #                               Percentage = character(),
+  #                               TakeProfit = character(),
+  #                               StopLoss = character(),
+  #                               Active = character())
+  # for(z in 1:length(coins.running)){
+  #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
+  #   df.coins.running = rbind(df.coins.running, dfx)
+  # }
+  
+  # For each coin running, I want to grab the last weeks worth of data by
+  # the automation timeframe
+  
+  ohlc.list = list()
+
+  for(i in 1:nrow(df.coins.running)){
+    df = riingo_crypto_prices(ticker = df.coins.running$Coins[i],
+                              start_date = Sys.Date() - 7,
+                              end_date = Sys.Date(),
+                              resample_frequency = df.coins.running$Timeframe[i])
+  
+  bst = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/TiingoBoosts"),
+                     object = paste0("bst_",df.coins.running$Coins[i],"_",df.coins.running$Timeframe[i],df.coins.running$Target[i],".rds"))
+  
+  if(df.coins.running$Timeframe[i] == '4hour' | df.coins.running$Timeframe[i] == '8hour'| df.coins.running$Timeframe[i] == '1hour'| df.coins.running$Timeframe[i] == '15min'){
+    #df1 = riingo_crypto_prices('REEFUSDT', end_date = Sys.Date(), resample_frequency = '4hour')
+    #df1 = df1[-nrow(df1),]
+    #df2 = riingo_crypto_latest('REEFUSDT', resample_frequency = '4hour')
+    #df = rbind(df1,df2)
+    df1 = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i])
+    df1 = df1[-nrow(df1),]
+    df2 = riingo_crypto_latest(df.coins.running$Coins[i], resample_frequency = df.coins.running$Timeframe[i])
+    df = rbind(df1,df2)
+  }else{
+    df = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i])
+  }
+  
+  # Modify data to be more useable
+  df = df[,4:9]
+  df$Percent.Change = NA
+  
+  colnames(df) = c("Date","Open","High","Low","Close","Volume","Percent.Change")
+  df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 1)
+  
+  
+  
+  #Add column for binary previouos day change+
+  df$Previous = NA
+  for(k in 2:nrow(df)){
+    if(df$Percent.Change[k - 1] <= 0){
+      df$Previous[k] = 0
+    }else{
+      df$Previous[k] = 1
+    }
+  }
+  
+  # Remove first row since we can't use it
+  df = df[-1,]
+  
+  
+  # Adding Moving Averages
+  df$MA10 = NA
+  df$MA20 = NA
+  
+  for(k in 21:nrow(df)){
+    df$MA10[k] = mean(df$Close[k-10:k])
+    df$MA20[k] = mean(df$Close[k-20:k])
+  }
+  # df$MA10 = round(df$MA10, digits = 2)
+  # df$MA20 = round(df$MA20, digits = 2)
+  
+  # Add column for if MA10 is above or below MA20
+  df$MAAB = 0
+  
+  df$MAAB[df$MA10 > df$MA20] = 1
+  
+  df = df[,-which(colnames(df) %in% c("MA10","MA20"))]
+  
+  # Convert to actual dates and remove year and change to numeric
+  #df$Date = str_replace(string = df$Date, pattern = "T", replacement = " ")
+  #df$Date = str_replace(string = df$Date, pattern = "Z", replacement = "")
+  
+  df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+  
+  df = df[!is.na(df$Date),]
+  
+  
+  df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+  
+  df = as.xts(df)
+  
+  
+  candle.list = list(hammer(df), inverted.hammer(df), bearish.engulf(df), bullish.engulf(df), up.trend(df), down.trend(df))
+  
+  # Remove unusable rows
+  for(k in 1:length(candle.list)){
+    df = cbind(df, candle.list[[k]])
+  }
+  df = df[-(1:20),]
+  
+  
+  # Add lagged values
+  for(k in 1:5){
+    high.lag = Lag(df$High, k)
+    close.lag = Lag(df$Close, k)
+    percent.change.lag = ((high.lag/close.lag) - 1) * 100
+    df = cbind(df, percent.change.lag)
+    
+  }
+  
+  df = df[-c(1:5),]
+  
+  df[is.na(df)] = 0
+  
+  # remove only last row
+  df = df[-nrow(df),]
+
+  ### Grab open high low close for later
+  df.ohlc = as.data.frame(df[,c(1:4)])
+  df.ohlc$Coins = df.coins.running$Coins[i]
+  df.ohlc$Time = row.names(df.ohlc)
+  
+  ### Remove OPEN HIGH LOW CLOSE
+  df = df[,-c(1:4)]
+  
+  
+  
+  
+  ############################################# 
+  ############################################# PREDICT CURRENT CANDLE
+  predict.next = predict(bst, df)
+  
+  if(i == 1){
+    predictions.comb = data.frame(predict.next)
+  }else{
+    predictions.comb = cbind(predictions.comb, predict.next)
+  }
+  
+  temp.list = list(df.ohlc = df.ohlc)
+  
+  ohlc.list = c(ohlc.list,temp.list)
+  
+  print(paste0(i," out of: ",nrow(df.coins.running)))
+  }
+  colnames(predictions.comb) = df.coins.running$Coins
+  
+  t.predictions.comb = t(predictions.comb)
+  
+  woulda.bought = c()
+  for(i in 1:ncol(t.predictions.comb)){
+    x = (which(t.predictions.comb[,i] >= 0.5 & t.predictions.comb[,i] == max(t.predictions.comb[,i])))
+    if(length(x) < 1){
+      x = NA
+    }
+    
+    woulda.bought = c(woulda.bought,x)
+  }
+  
+  df.purchases = ohlc.list[[woulda.bought[1]]][0,]
+  
+  for(i in 1:length(woulda.bought)){
+    if(is.na(woulda.bought[i])){
+      next()
+    }
+    
+    temp.df = ohlc.list[[woulda.bought[i]]][i,]
+    df.purchases = rbind(df.purchases,temp.df)
+    
+  }
+  
+  df.purchases$OH = (df.purchases$High - df.purchases$Open) / df.purchases$Open * 100
+  df.purchases$OC = (df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100
+  
+  df.purchases = left_join(df.purchases, df.coins.running[,c(3,4)], by = "Coins")
+  
+  df.purchases$PL = 0
+  df.purchases$PL[df.purchases$OH >= df.purchases$Target] = 1
+  df.purchases$PL[df.purchases$OH < df.purchases$Target] = df.purchases$OC[df.purchases$OH < df.purchases$Target]
+  
+  numeric_cols = sapply(df.purchases, is.numeric)
+  df.purchases[numeric_cols] = lapply(df.purchases[numeric_cols], signif, digits = 6)
+  
+  PL = sum(df.purchases$PL)
+  
+  to.return = list(df.purchases = df.purchases,
+                   PL = PL)
+  
+  return(to.return)
+}
+
+
+
+
+
+
+
+
