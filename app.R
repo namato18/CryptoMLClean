@@ -385,6 +385,8 @@ ui <- secure_app(dashboardPage(
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                selectInput(inputId = "selectAPI", label = "Select API", choices = list("gentlemam1"="gentlemam1",
+                                                                                        "gentlemam2" = "gentlemam2", "gentlemam3" = "gentlemam3")),
                 strong(h1("Binance Automation")),
                 box(width=10,
                     paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
@@ -510,15 +512,49 @@ server <- function(input, output, session) {
       binance::authenticate(key = api_key,secret = secret)
       binance::base_url("https://api.binance.com")
     }
-    
-    
+
+    if(is.null(input$selectAPI)){
+      print("hello")
+    }else{
+      if(input$selectAPI == "nick"){
+        # MINE
+          disable("submitBinanceAutomation")
+          disable("cancelBinanceAutomation")
+          disable("submitBinance")
+        
+        secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+        api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+        binance::authenticate(key = api_key,secret = secret)
+        binance::base_url("https://api.binance.us")
+        
+      }else if(input$selectAPI == 'gentlemam1'){
+        #Gentlemam
+        secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+        api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+        binance::authenticate(key = api_key,secret = secret)
+        binance::base_url("https://api.binance.com")
+      }else if(input$selectAPI == 'gentlemam2'){
+        #Gentlemam
+        secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
+        api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
+        binance::authenticate(key = api_key,secret = secret)
+        binance::base_url("https://api.binance.com")
+      }else if(input$selectAPI == 'gentlemam3'){
+        #Gentlemam
+        secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
+        api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
+        binance::authenticate(key = api_key,secret = secret)
+        binance::base_url("https://api.binance.com")
+      }
+    }
+
     output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
     output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
     output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     
     
@@ -532,7 +568,7 @@ server <- function(input, output, session) {
                                   StopLoss = character(),
                                   Active = character())
     for(z in 1:length(coins.running)){
-      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",input$selectAPI), object = paste0(coins.running[z],".rds"))
       df.coins.running = rbind(df.coins.running, dfx)
     }
     # if(length(coins.running) != 0){
@@ -775,7 +811,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$submitBinanceAutomation, {
     
-    x = data.frame(User = reactiveValuesToList(res_auth)$user,
+    x = data.frame(User = input$selectAPI,
                    Timeframe = input$timeframeAutomation,
                    Coins = input$checkGroupBinance,
                    Target = input$sliderAutomationTarget,
@@ -787,17 +823,17 @@ server <- function(input, output, session) {
     )
     saveRDS(x, file = paste0(tempdir(), "/x.rds"))
     
-    aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+    aws.s3::put_folder(input$selectAPI ,bucket = "cryptomlbucket/Automation")
     
     put_object(
       file = file.path(tempdir(), "x.rds"),
       object = paste0(input$checkGroupBinance,".rds"),
-      bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+      bucket = paste0("cryptomlbucket/Automation/",input$selectAPI)
     )
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     if(length(coins.running) != 0){
       y = data.frame(Coins = coins.running)
@@ -809,7 +845,7 @@ server <- function(input, output, session) {
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     
     
@@ -823,7 +859,7 @@ server <- function(input, output, session) {
                                   StopLoss = character(),
                                   Active = character())
     for(z in 1:length(coins.running)){
-      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",input$selectAPI), object = paste0(coins.running[z],".rds"))
       df.coins.running = rbind(df.coins.running, dfx)
     }
     if(length(coins.running > 0)){
@@ -861,10 +897,10 @@ server <- function(input, output, session) {
     #   object = paste0(input$checkGroupBinance,".rds"),
     #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     # )
-    aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user))
+    aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",input$selectAPI))
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     # if(length(coins.running) != 0){
     y = data.frame(Coins = coins.running)
@@ -874,7 +910,7 @@ server <- function(input, output, session) {
     
     x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     
     df.coins.running = data.frame(User = character(),
@@ -887,7 +923,7 @@ server <- function(input, output, session) {
                                   StopLoss = character(),
                                   Active = character())
     for(z in 1:length(coins.running)){
-      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",input$selectAPI), object = paste0(coins.running[z],".rds"))
       df.coins.running = rbind(df.coins.running, dfx)
     }
     if(length(coins.running > 0)){
@@ -970,8 +1006,8 @@ server <- function(input, output, session) {
                    "Your Order Was Successfully Canceled!",
                    type = 'success')
         openOrders.df$data = openOrders.df$data = openOrders.df$data[-ind,]
-        aws.s3::delete_object(object = paste0(reactiveValuesToList(res_auth)$user,".rds"), bucket = paste0("cryptomlbucket/ActiveAutomation"))
-        
+        aws.s3::delete_object(object = paste0(input$selectAPI,".rds"), bucket = paste0("cryptomlbucket/ActiveAutomation"))
+
       }else{
         shinyalert("Error",
                    "Your Order Was Not Canceled!",
