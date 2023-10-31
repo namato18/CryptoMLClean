@@ -809,7 +809,6 @@ predict_week = function(symbol, timeframe){
 
 
 build.TV.model <- function(df, timeframe){
-  
   Symbols = toString(df$name)
   print(Symbols)
   # Symbols = 'BTCUSDT.csv'
@@ -1143,27 +1142,28 @@ build.TV.model <- function(df, timeframe){
 
 BacktestAutomation <- function(df.active.automation, user, timeframe){
   
-  # user = "gentlemam1"
-  # 
-  # x = aws.s3::get_bucket_df("cryptomlbucket")
-  # 
-  # x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
-  # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-  # 
-  # 
-  # df.coins.running = data.frame(User = character(),
-  #                               Timeframe = character(),
-  #                               Coins = character(),
-  #                               Target = character(),
-  #                               Confidence = character(),
-  #                               Percentage = character(),
-  #                               TakeProfit = character(),
-  #                               StopLoss = character(),
-  #                               Active = character())
-  # for(z in 1:length(coins.running)){
-  #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
-  #   df.coins.running = rbind(df.coins.running, dfx)
-  # }
+  user = "nick"
+  timeframe = 7
+
+  x = aws.s3::get_bucket_df("cryptomlbucket")
+
+  x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
+  coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+
+
+  df.coins.running = data.frame(User = character(),
+                                Timeframe = character(),
+                                Coins = character(),
+                                Target = character(),
+                                Confidence = character(),
+                                Percentage = character(),
+                                TakeProfit = character(),
+                                StopLoss = character(),
+                                Active = character())
+  for(z in 1:length(coins.running)){
+    dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
+    df.coins.running = rbind(df.coins.running, dfx)
+  }
   
   # For each coin running, I want to grab the last weeks worth of data by
   # the automation timeframe
@@ -1171,6 +1171,7 @@ BacktestAutomation <- function(df.active.automation, user, timeframe){
   ohlc.list = list()
 
   for(i in 1:nrow(df.coins.running)){
+    i=2
     df = riingo_crypto_prices(ticker = df.coins.running$Coins[i],
                               start_date = Sys.Date() - 7,
                               end_date = Sys.Date(),
@@ -1294,8 +1295,9 @@ BacktestAutomation <- function(df.active.automation, user, timeframe){
   }
   
   temp.list = list(df.ohlc = df.ohlc)
+  assign(paste0("temp.list.",df.coins.running$Coins[i]),temp.list,.GlobalEnv)
   
-  ohlc.list = c(ohlc.list,temp.list)
+  ohlc.list = c(ohlc.list,temp.list.REEFUSDT)
   
   print(paste0(i," out of: ",nrow(df.coins.running)))
   }

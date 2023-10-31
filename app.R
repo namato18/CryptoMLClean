@@ -385,8 +385,10 @@ ui <- secure_app(dashboardPage(
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
-                selectInput(inputId = "selectAPI", label = "Select API", choices = list("gentlemam1"="gentlemam1",
-                                                                                        "gentlemam2" = "gentlemam2", "gentlemam3" = "gentlemam3")),
+                selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick",
+                                                                                        "gentlemam1"="gentlemam1",
+                                                                                        "gentlemam2" = "gentlemam2", 
+                                                                                        "gentlemam3" = "gentlemam3")),
                 strong(h1("Binance Automation")),
                 box(width=10,
                     paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
@@ -518,9 +520,9 @@ server <- function(input, output, session) {
     }else{
       if(input$selectAPI == "nick"){
         # MINE
-          disable("submitBinanceAutomation")
-          disable("cancelBinanceAutomation")
-          disable("submitBinance")
+          # disable("submitBinanceAutomation")
+          # disable("cancelBinanceAutomation")
+          # disable("submitBinance")
         
         secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
         api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
