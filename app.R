@@ -389,6 +389,8 @@ ui <- secure_app(dashboardPage(
                                                                                         "gentlemam1"="gentlemam1",
                                                                                         "gentlemam2" = "gentlemam2", 
                                                                                         "gentlemam3" = "gentlemam3")),
+                selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick","gentlemam1"="gentlemam1",
+                                                                                        "gentlemam2" = "gentlemam2", "gentlemam3" = "gentlemam3")),
                 strong(h1("Binance Automation")),
                 box(width=10,
                     paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
