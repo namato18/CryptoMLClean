@@ -10,6 +10,10 @@ library(plotly)
 library(chron)
 library(aws.s3)
 library(dplyr)
+library(purrr)
+
+possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
+
 
 readRenviron(".Renviron")
 Sys.setenv(TZ='UTC')
@@ -1140,30 +1144,31 @@ build.TV.model <- function(df, timeframe){
 #################################################################################################################
 #################################################################################################################
 
-BacktestAutomation <- function(df.active.automation, user, timeframe){
+BacktestAutomation <- function(df.coins.running, user, timeframe){
   
-  user = "nick"
-  timeframe = 7
-
-  x = aws.s3::get_bucket_df("cryptomlbucket")
-
-  x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
-  coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-
-
-  df.coins.running = data.frame(User = character(),
-                                Timeframe = character(),
-                                Coins = character(),
-                                Target = character(),
-                                Confidence = character(),
-                                Percentage = character(),
-                                TakeProfit = character(),
-                                StopLoss = character(),
-                                Active = character())
-  for(z in 1:length(coins.running)){
-    dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
-    df.coins.running = rbind(df.coins.running, dfx)
-  }
+  
+  # user = "gentlemam1"
+  # timeframe = 7
+  # 
+  # x = aws.s3::get_bucket_df("cryptomlbucket")
+  # 
+  # x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
+  # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # 
+  # 
+  # df.coins.running = data.frame(User = character(),
+  #                               Timeframe = character(),
+  #                               Coins = character(),
+  #                               Target = character(),
+  #                               Confidence = character(),
+  #                               Percentage = character(),
+  #                               TakeProfit = character(),
+  #                               StopLoss = character(),
+  #                               Active = character())
+  # for(z in 1:length(coins.running)){
+  #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
+  #   df.coins.running = rbind(df.coins.running, dfx)
+  # }
   
   # For each coin running, I want to grab the last weeks worth of data by
   # the automation timeframe
@@ -1171,7 +1176,6 @@ BacktestAutomation <- function(df.active.automation, user, timeframe){
   ohlc.list = list()
 
   for(i in 1:nrow(df.coins.running)){
-    i=2
     df = riingo_crypto_prices(ticker = df.coins.running$Coins[i],
                               start_date = Sys.Date() - 7,
                               end_date = Sys.Date(),
@@ -1297,7 +1301,7 @@ BacktestAutomation <- function(df.active.automation, user, timeframe){
   temp.list = list(df.ohlc = df.ohlc)
   assign(paste0("temp.list.",df.coins.running$Coins[i]),temp.list,.GlobalEnv)
   
-  ohlc.list = c(ohlc.list,temp.list.REEFUSDT)
+  ohlc.list = c(ohlc.list,temp.list)
   
   print(paste0(i," out of: ",nrow(df.coins.running)))
   }
@@ -1327,8 +1331,8 @@ BacktestAutomation <- function(df.active.automation, user, timeframe){
     
   }
   
-  df.purchases$OH = (df.purchases$High - df.purchases$Open) / df.purchases$Open * 100
-  df.purchases$OC = (df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100
+  df.purchases$OH = round((df.purchases$High - df.purchases$Open) / df.purchases$Open * 100, 3)
+  df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
   
   df.purchases = left_join(df.purchases, df.coins.running[,c(3,4)], by = "Coins")
   
@@ -1340,6 +1344,13 @@ BacktestAutomation <- function(df.active.automation, user, timeframe){
   df.purchases[numeric_cols] = lapply(df.purchases[numeric_cols], signif, digits = 6)
   
   PL = sum(df.purchases$PL)
+  
+  df.purchases$OH = paste0(df.purchases$OH, " %")
+  df.purchases$OC = paste0(df.purchases$OC, " %")
+  df.purchases$Target = paste0(df.purchases$Target, " %")
+  df.purchases$PL = paste0(df.purchases$PL, " %")
+  
+  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Open/High", "Open/Close", "Target", "PL")
   
   to.return = list(df.purchases = df.purchases,
                    PL = PL)

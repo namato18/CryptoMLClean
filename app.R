@@ -385,7 +385,7 @@ ui <- secure_app(dashboardPage(
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
-                selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick",
+                selectInput(inputId = "selectAPI", label = "Select API", choices = list(
                                                                                         "gentlemam1"="gentlemam1",
                                                                                         "gentlemam2" = "gentlemam2", 
                                                                                         "gentlemam3" = "gentlemam3")),
@@ -431,7 +431,8 @@ ui <- secure_app(dashboardPage(
                                                                                                                        "1 month" = 28)),
                     numericInput(inputId = "feeInput", label = "Fee per Transaction", value = 0),
                     actionButton(inputId = "shortBacktest", label = "Generate Backtest"),
-                    dataTableOutput("shortBacktestTable")
+                    dataTableOutput("shortBacktestTable"),
+                    valueBoxOutput("ProfitLoss")
                 ),
                 box(title = "Open Orders", status = "primary", solidHeader = TRUE,width=12,
                     dataTableOutput("openOrders"),
@@ -1030,6 +1031,7 @@ server <- function(input, output, session) {
     x = BacktestAutomation(df,reactiveValuesToList(res_auth)$user, timeframe)
     
     output$shortBacktestTable = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
+    output$ProfitLoss = renderValueBox(shinydashboard::valueBox(value = paste0(x$PL, "%"), subtitle = "Profit or Loss %", color = "aqua", width = 3))
     print(x$PL)
   })
   
