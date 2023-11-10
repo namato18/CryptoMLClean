@@ -13,6 +13,7 @@ library(dplyr)
 library(purrr)
 
 possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
+possibly_riingo_crypto_prices = possibly(riingo_crypto_prices, otherwise = 'ERROR')
 
 
 readRenviron(".Renviron")
@@ -1144,13 +1145,15 @@ build.TV.model <- function(df, timeframe){
 #################################################################################################################
 #################################################################################################################
 
-BacktestAutomation <- function(df.coins.running, user, timeframe){
+BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidence.score){
   
   
   # user = "gentlemam1"
   # timeframe = 7
+  # fee = 0
+  # confidence.score = 0.5
   # 
-  # x = aws.s3::get_bucket_df("cryptomlbucket")
+  # x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
   # 
   # x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
   # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
@@ -1174,12 +1177,18 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
   # the automation timeframe
   
   ohlc.list = list()
-
+  to.remove = c()
+  
   for(i in 1:nrow(df.coins.running)){
-    df = riingo_crypto_prices(ticker = df.coins.running$Coins[i],
+    df = possibly_riingo_crypto_prices(ticker = df.coins.running$Coins[i],
                               start_date = Sys.Date() - 7,
                               end_date = Sys.Date(),
-                              resample_frequency = df.coins.running$Timeframe[i])
+                              resample_frequency = df.coins.running$Timeframe[i],
+                              exchanges = "binance")
+    if(length(df) == 1){
+      to.remove = c(to.remove,i)
+      next()
+    }
   
   bst = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/TiingoBoosts"),
                      object = paste0("bst_",df.coins.running$Coins[i],"_",df.coins.running$Timeframe[i],df.coins.running$Target[i],".rds"))
@@ -1189,12 +1198,12 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
     #df1 = df1[-nrow(df1),]
     #df2 = riingo_crypto_latest('REEFUSDT', resample_frequency = '4hour')
     #df = rbind(df1,df2)
-    df1 = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i])
+    df1 = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
     df1 = df1[-nrow(df1),]
-    df2 = riingo_crypto_latest(df.coins.running$Coins[i], resample_frequency = df.coins.running$Timeframe[i])
+    df2 = riingo_crypto_latest(df.coins.running$Coins[i], resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
     df = rbind(df1,df2)
   }else{
-    df = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i])
+    df = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
   }
   
   # Modify data to be more useable
@@ -1216,9 +1225,12 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
     }
   }
   
+  df$Percent.Change = c(NA,df$Percent.Change[-nrow(df)])
+  
+  
   # Remove first row since we can't use it
   df = df[-1,]
-  
+  df.9 = df
   
   # Adding Moving Averages
   df$MA10 = NA
@@ -1292,9 +1304,16 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
   ############################################# PREDICT CURRENT CANDLE
   predict.next = predict(bst, df)
   
+
+  
   if(i == 1){
     predictions.comb = data.frame(predict.next)
   }else{
+    if(length(predict.next) != nrow(predictions.comb)){
+      print("skipping coin")
+      to.remove = c(to.remove, i)
+      next()
+    }
     predictions.comb = cbind(predictions.comb, predict.next)
   }
   
@@ -1305,17 +1324,21 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
   
   print(paste0(i," out of: ",nrow(df.coins.running)))
   }
-  colnames(predictions.comb) = df.coins.running$Coins
+  colnames(predictions.comb) = df.coins.running$Coins[-to.remove]
   
   t.predictions.comb = t(predictions.comb)
   
   woulda.bought = c()
+  confidence.scores = c()
   for(i in 1:ncol(t.predictions.comb)){
-    x = (which(t.predictions.comb[,i] >= 0.5 & t.predictions.comb[,i] == max(t.predictions.comb[,i])))
+    x = (which(t.predictions.comb[,i] >= confidence.score & t.predictions.comb[,i] == max(t.predictions.comb[,i])))
+    conf = max(t.predictions.comb[,i])
     if(length(x) < 1){
       x = NA
+      conf = NA
     }
     
+    confidence.scores = c(confidence.scores, conf)
     woulda.bought = c(woulda.bought,x)
   }
   
@@ -1330,6 +1353,8 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
     df.purchases = rbind(df.purchases,temp.df)
     
   }
+  
+  df.purchases$Confidence = round(confidence.scores[-which(is.na(confidence.scores))], 3)
   
   df.purchases$OH = round((df.purchases$High - df.purchases$Open) / df.purchases$Open * 100, 3)
   df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
@@ -1350,7 +1375,10 @@ BacktestAutomation <- function(df.coins.running, user, timeframe){
   df.purchases$Target = paste0(df.purchases$Target, " %")
   df.purchases$PL = paste0(df.purchases$PL, " %")
   
-  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Open/High", "Open/Close", "Target", "PL")
+  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Confidence Scores", "Open/High", "Open/Close", "Target", "PL")
+  
+  fee.to.subtract = fee * nrow(df.purchases) * 2
+  PL = PL - fee.to.subtract
   
   to.return = list(df.purchases = df.purchases,
                    PL = PL)

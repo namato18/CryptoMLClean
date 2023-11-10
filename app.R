@@ -429,6 +429,7 @@ ui <- secure_app(dashboardPage(
                     selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Timeframe", choices = list("1 week" = 7,
                                                                                                                        "2 weeks" = 14,
                                                                                                                        "1 month" = 28)),
+                    sliderInput(inputId = "confidenceBacktestAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02),
                     numericInput(inputId = "feeInput", label = "Fee per Transaction", value = 0),
                     actionButton(inputId = "shortBacktest", label = "Generate Backtest"),
                     dataTableOutput("shortBacktestTable"),
@@ -556,11 +557,11 @@ server <- function(input, output, session) {
     output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
     output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
     
-    x = aws.s3::get_bucket_df("cryptomlbucket")
-    
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    
+
     
     df.coins.running = data.frame(User = character(),
                                   Timeframe = character(),
@@ -835,7 +836,7 @@ server <- function(input, output, session) {
       bucket = paste0("cryptomlbucket/Automation/",input$selectAPI)
     )
     
-    x = aws.s3::get_bucket_df("cryptomlbucket")
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
     
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
@@ -902,7 +903,7 @@ server <- function(input, output, session) {
     #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     # )
     aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",input$selectAPI))
-    x = aws.s3::get_bucket_df("cryptomlbucket")
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
     
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
@@ -912,7 +913,7 @@ server <- function(input, output, session) {
     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
     # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
     
-    x = aws.s3::get_bucket_df("cryptomlbucket")
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
     
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
@@ -1027,8 +1028,10 @@ server <- function(input, output, session) {
     
     timeframe = input$shortBacktestTimeframe
     df = df.coins.running
+    fee = input$feeInput
+    confidence.score = input$confidenceBacktestAutomation
     
-    x = BacktestAutomation(df,reactiveValuesToList(res_auth)$user, timeframe)
+    x = BacktestAutomation(df,reactiveValuesToList(res_auth)$user, timeframe, fee, confidence.score)
     
     output$shortBacktestTable = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
     output$ProfitLoss = renderValueBox(shinydashboard::valueBox(value = paste0(x$PL, "%"), subtitle = "Profit or Loss %", color = "aqua", width = 3))
