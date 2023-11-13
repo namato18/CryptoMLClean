@@ -1148,10 +1148,10 @@ build.TV.model <- function(df, timeframe){
 BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidence.score){
   
   
-  # user = "gentlemam3"
+  # user = "nick"
   # timeframe = 7
   # fee = 0
-  # confidence.score = 0.5
+  # confidence.score = 0.7
   # 
   # x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
   # 
@@ -1225,7 +1225,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
     }
   }
   
-  df$Percent.Change = c(NA,df$Percent.Change[-nrow(df)])
+  # df$Percent.Change = c(NA,df$Percent.Change[-nrow(df)])
   
   
   # Remove first row since we can't use it
@@ -1293,6 +1293,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   df.ohlc = as.data.frame(df[,c(1:4)])
   df.ohlc$Coins = df.coins.running$Coins[i]
   df.ohlc$Time = row.names(df.ohlc)
+  df.ohlc = df.ohlc[-1,]
   
   ### Remove OPEN HIGH LOW CLOSE
   df = df[,-c(1:4)]
@@ -1327,6 +1328,8 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   
   if(length(to.remove) != 0){
     colnames(predictions.comb) = df.coins.running$Coins[-to.remove]
+  }else{
+    colnames(predictions.comb) = df.coins.running$Coins
   }
   
   t.predictions.comb = t(predictions.comb)
@@ -1347,7 +1350,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   
   df.purchases = ohlc.list[[woulda.bought[1]]][0,]
   
-  for(i in 1:length(woulda.bought)){
+  for(i in 1:(length(woulda.bought))){
     if(is.na(woulda.bought[i])){
       next()
     }
@@ -1356,8 +1359,13 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
     df.purchases = rbind(df.purchases,temp.df)
     
   }
+  if(any(is.na(confidence.scores))){
+    df.purchases$Confidence = round(confidence.scores[-which(is.na(confidence.scores))], 3)
+  }else{
+    df.purchases$Confidence = round(confidence.scores, 3)
+  }
   
-  df.purchases$Confidence = round(confidence.scores[-which(is.na(confidence.scores))], 3)
+  df.purchases = na.omit(df.purchases)
   
   df.purchases$OH = round((df.purchases$High - df.purchases$Open) / df.purchases$Open * 100, 3)
   df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
@@ -1365,7 +1373,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   df.purchases = left_join(df.purchases, df.coins.running[,c(3,4)], by = "Coins")
   
   df.purchases$PL = 0
-  df.purchases$PL[df.purchases$OH >= df.purchases$Target] = 1
+  df.purchases$PL[df.purchases$OH >= df.purchases$Target] = df.purchases$Target[df.purchases$OH >= df.purchases$Target]
   df.purchases$PL[df.purchases$OH < df.purchases$Target] = df.purchases$OC[df.purchases$OH < df.purchases$Target]
   
   numeric_cols = sapply(df.purchases, is.numeric)
