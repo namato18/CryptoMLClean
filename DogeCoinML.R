@@ -1148,7 +1148,7 @@ build.TV.model <- function(df, timeframe){
 BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidence.score){
   
   
-  # user = "gentlemam1"
+  # user = "gentlemam3"
   # timeframe = 7
   # fee = 0
   # confidence.score = 0.5
@@ -1324,7 +1324,10 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   
   print(paste0(i," out of: ",nrow(df.coins.running)))
   }
-  colnames(predictions.comb) = df.coins.running$Coins[-to.remove]
+  
+  if(length(to.remove) != 0){
+    colnames(predictions.comb) = df.coins.running$Coins[-to.remove]
+  }
   
   t.predictions.comb = t(predictions.comb)
   

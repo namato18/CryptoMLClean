@@ -411,7 +411,14 @@ ui <- secure_app(dashboardPage(
                     sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
                     br(),
                     sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
-                    
+                    br(),
+                    actionBttn(inputId = 'submitBinanceAutomation',
+                               label = 'Begin Automation',
+                               icon = icon('robot'),
+                               style = 'pill',
+                               color = 'success',
+                               size = 'lg',
+                               block = TRUE)
                     
                 ),
                 box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
@@ -424,6 +431,13 @@ ui <- secure_app(dashboardPage(
                 box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
                     # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
                     dataTableOutput("activeAutomationInfo"),
+                    actionBttn(inputId = 'cancelBinanceAutomation',
+                               label = 'Cancel Automation',
+                               icon = icon('robot'),
+                               style = 'pill',
+                               color = 'danger',
+                               size = 'lg',
+                               block = TRUE)
                 ),
                 box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
                     selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Timeframe", choices = list("1 week" = 7,
@@ -442,21 +456,21 @@ ui <- secure_app(dashboardPage(
                 # box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
                 #   gaugeOutput("volumeGauge")
                 # ),
-                actionBttn(inputId = 'submitBinanceAutomation',
-                           label = 'Begin Automation',
-                           icon = icon('robot'),
-                           style = 'pill',
-                           color = 'success',
-                           size = 'lg',
-                           block = TRUE),
-                br(),
-                actionBttn(inputId = 'cancelBinanceAutomation',
-                           label = 'Cancel Automation',
-                           icon = icon('robot'),
-                           style = 'pill',
-                           color = 'danger',
-                           size = 'lg',
-                           block = TRUE),
+                # actionBttn(inputId = 'submitBinanceAutomation',
+                #            label = 'Begin Automation',
+                #            icon = icon('robot'),
+                #            style = 'pill',
+                #            color = 'success',
+                #            size = 'lg',
+                #            block = TRUE),
+                # br(),
+                # actionBttn(inputId = 'cancelBinanceAutomation',
+                #            label = 'Cancel Automation',
+                #            icon = icon('robot'),
+                #            style = 'pill',
+                #            color = 'danger',
+                #            size = 'lg',
+                #            block = TRUE),
                 br()
                 # box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
                 #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
@@ -579,7 +593,7 @@ server <- function(input, output, session) {
     # if(length(coins.running) != 0){
     y = data.frame(Coins = coins.running)
     if(length(coins.running > 0)){
-      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
       assign("df.coins.running",df.coins.running,.GlobalEnv)
       
     }else{
@@ -848,12 +862,11 @@ server <- function(input, output, session) {
     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
     # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
     
-    x = aws.s3::get_bucket_df("cryptomlbucket")
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
     
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    
-    
+
     df.coins.running = data.frame(User = character(),
                                   Timeframe = character(),
                                   Coins = character(),
@@ -867,8 +880,9 @@ server <- function(input, output, session) {
       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",input$selectAPI), object = paste0(coins.running[z],".rds"))
       df.coins.running = rbind(df.coins.running, dfx)
     }
-    if(length(coins.running > 0)){
-      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+    
+    if(length(coins.running) > 0){
+      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
       assign("df.coins.running",df.coins.running,.GlobalEnv)
     }else{
       output$activeAutomationInfo = NULL
@@ -902,9 +916,14 @@ server <- function(input, output, session) {
     #   object = paste0(input$checkGroupBinance,".rds"),
     #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     # )
-    aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",input$selectAPI))
+    row.selected = input$activeAutomationInfo_rows_selected
+    coin.selected = df.coins.running$Coins[row.selected]
+    print(row.selected)
+    print(coin.selected)
+
+    aws.s3::delete_object(object = paste0(coin.selected,".rds"), bucket = paste0("cryptomlbucket/Automation/",input$selectAPI))
     x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
-    
+
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
     # if(length(coins.running) != 0){
@@ -912,12 +931,12 @@ server <- function(input, output, session) {
     # output$currentAutomation = renderDataTable(datatable(y))
     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
     # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
-    
+
     x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
-    
+
     x.sel = x[grepl(pattern = paste0("Automation/",input$selectAPI,"/"), x = x$Key),]
     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    
+
     df.coins.running = data.frame(User = character(),
                                   Timeframe = character(),
                                   Coins = character(),
@@ -932,15 +951,15 @@ server <- function(input, output, session) {
       df.coins.running = rbind(df.coins.running, dfx)
     }
     if(length(coins.running > 0)){
-      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
       assign("df.coins.running",df.coins.running,.GlobalEnv)
-      
+
     }else{
       output$activeAutomationInfo = NULL
-    }      
-    
+    }
+
     # }
-    
+
     shinyalert("Success",
                "Your Automation Was Successfully Stopped!",
                type = 'success')
