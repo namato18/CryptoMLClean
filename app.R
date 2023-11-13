@@ -385,7 +385,7 @@ ui <- secure_app(dashboardPage(
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
-                selectInput(inputId = "selectAPI", label = "Select API", choices = list(
+                selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick",
                                                                                         "gentlemam1"="gentlemam1",
                                                                                         "gentlemam2" = "gentlemam2", 
                                                                                         "gentlemam3" = "gentlemam3")),
