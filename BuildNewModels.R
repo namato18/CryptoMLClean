@@ -11,11 +11,11 @@ library(riingo)
 ############################### GET LIST OF ALL DATASETS GATHERED USING TIINGO (COMMENTED BECAUSE NOT LOOPING NOW)
 
 str1 = readRDS("../master.lists/clean.list.rds")
-stock1 = readRDS("tickers/stock1.rds")
-comb.str = paste(str1, collapse = "|")
-comb.stock = paste(stock1, collapse = "|")
+# stock1 = readRDS("tickers/stock1.rds")
+comb = paste(str1, collapse = "|")
+# comb.stock = paste(stock1, collapse = "|")
 
-comb = paste(comb.str, comb.stock,sep="|")
+# comb = paste(comb.str, comb.stock,sep="|")
 
 x = list.files(path = '../RiingoPulledData',full.names = TRUE)
 file.names = list.files('../RiingoPulledData')

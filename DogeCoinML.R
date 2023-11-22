@@ -110,10 +110,12 @@ getTimeRemaining = function(timeframe){
 
 createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timeframe, TP=0){
   
-  # Symbol = 'ETHUSDT'
-  # Timeframe = '4hour'
-  # TargetIncreasePercent = "1"
-  # SuccessThreshold = '0.9'
+  Symbol = 'ETHUSDT'
+  Timeframe = '4hour'
+  TargetIncreasePercent = "1"
+  SuccessThreshold = '0.9'
+  TP= as.numeric(TargetIncreasePercent)
+  SL = TP * -2
   # df = readRDS(paste0("bsts/df_",'ETHUSD','4hour',".rds"))
   # sample.split = readRDS(paste0("bsts/sample.split_",'ETHUSD','4hour',"1",".rds"))
   # outcome = readRDS(paste0("bsts/outcome_",'ETHUSD','4hour',"1",".rds"))
@@ -122,6 +124,9 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
   
   
   df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("df_",Symbol,"_",Timeframe,".rds"))
+  if(TargetIncreasePercent > 0){
+    df$Percent.Change = round((df$High - df$Open) / df$Open * 100,1)
+  }
   sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("sample.split_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
   outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("outcome_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
   test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
@@ -201,7 +206,8 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
   }else{
     
     examine = compare[compare$Signal == 1, ]
-    winning.trades = examine[examine$Actual == 1,]
+    examine$Actual.Percent.Close[examine$Actual.Percent.Close < SL] = SL
+    winning.trades = examine[examine$Actual == 1 | examine$Actual.Percent.Close > 0,]
     winning.trades$Actual.Percent.High[winning.trades$Actual.Percent.High > TP ] = TP
     winning.trades.above = winning.trades[winning.trades$Actual.Percent.High == TP,]
     winning.trades.below = winning.trades[winning.trades$Actual.Percent.High < TP,]
@@ -211,7 +217,9 @@ createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timefra
     # missed.trades = examine[examine$Actual == 0,]
     # missed.trades$Actual.Percent.Close[missed.trades$Actual.Percent.Close < SL] = SL
     # missed.sum = sum(as.numeric(as.character(missed.trades$Actual.Percent.Close)))
-    accuracy2 = winning.sum
+    
+    failed.trades.sum = sum(examine$Actual.Percent.Close[examine$Actual == 0 & examine$Actual.Percent.Close < 0])
+    accuracy2 = winning.sum + failed.trades.sum
     # accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
     print(accuracy2)
   }
@@ -1172,7 +1180,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
   #   df.coins.running = rbind(df.coins.running, dfx)
   # }
-  
+
   # For each coin running, I want to grab the last weeks worth of data by
   # the automation timeframe
   
@@ -1370,11 +1378,11 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   df.purchases$OH = round((df.purchases$High - df.purchases$Open) / df.purchases$Open * 100, 3)
   df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
   
-  df.purchases = left_join(df.purchases, df.coins.running[,c(3,4)], by = "Coins")
+  df.purchases = left_join(df.purchases, df.coins.running[,c(3,7)], by = "Coins")
   
   df.purchases$PL = 0
-  df.purchases$PL[df.purchases$OH >= df.purchases$Target] = df.purchases$Target[df.purchases$OH >= df.purchases$Target]
-  df.purchases$PL[df.purchases$OH < df.purchases$Target] = df.purchases$OC[df.purchases$OH < df.purchases$Target]
+  df.purchases$PL[df.purchases$OH >= df.purchases$TakeProfit] = df.purchases$TakeProfit[df.purchases$OH >= df.purchases$TakeProfit]
+  df.purchases$PL[df.purchases$OH < df.purchases$TakeProfit] = df.purchases$OC[df.purchases$OH < df.purchases$TakeProfit]
   
   numeric_cols = sapply(df.purchases, is.numeric)
   df.purchases[numeric_cols] = lapply(df.purchases[numeric_cols], signif, digits = 6)
@@ -1383,10 +1391,10 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   
   df.purchases$OH = paste0(df.purchases$OH, " %")
   df.purchases$OC = paste0(df.purchases$OC, " %")
-  df.purchases$Target = paste0(df.purchases$Target, " %")
+  df.purchases$TakeProfit = paste0(df.purchases$TakeProfit, " %")
   df.purchases$PL = paste0(df.purchases$PL, " %")
   
-  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Confidence Scores", "Open/High", "Open/Close", "Target", "PL")
+  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Confidence Scores", "Open/High", "Open/Close", "Take Profit", "PL")
   
   fee.to.subtract = fee * nrow(df.purchases) * 2
   PL = PL - fee.to.subtract

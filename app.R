@@ -14,6 +14,7 @@ library(shinymanager)
 library(flexdashboard)
 library(shinybusy)
 library(shinyjs)
+library(riingo)
 
 # MINE
 # secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
@@ -45,6 +46,9 @@ checkbox_list = setNames(str1, str1)
 possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 possibly_spot_order_cancel = possibly(spot_order_cancel, otherwise = "ERROR")
+possibly_riingo_crypto_latest = possibly(riingo_crypto_latest, otherwise = 'ERROR')
+
+binance_support_check = possibly(market_price_ticker, otherwise = 'ERROR')
 
 
 # Define UI
@@ -385,7 +389,7 @@ ui <- secure_app(dashboardPage(
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "aquamarine", height = "100px", width="100px", position = "bottom-right"),
                 img(src='logo2.png', width = 200, height = 200, align = 'right' ),
-                selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick",
+                selectInput(inputId = "selectAPI", label = "Select API", choices = list(
                                                                                         "gentlemam1"="gentlemam1",
                                                                                         "gentlemam2" = "gentlemam2", 
                                                                                         "gentlemam3" = "gentlemam3")),
@@ -404,12 +408,12 @@ ui <- secure_app(dashboardPage(
                     br(),
                     sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
                     br(),
-                    sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
+                    sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 100, step = 1),
                     br(),
                     sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
                     br(),
-                    sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
-                    br(),
+                    # sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
+                    # br(),
                     sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
                     br(),
                     actionBttn(inputId = 'submitBinanceAutomation',
@@ -804,26 +808,38 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$checkGroupBinance, {
-    vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
-    vol1 = vol1[-1,]
-    vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
-    
-    vol = rbind(vol2, vol1)
-    vol = vol[nrow(vol)-25:nrow(vol),]
-    m.vol = mean(vol$volume)
-    vol.now = vol$volume[(nrow(vol)-1)]
-    
-    vol.compare = (vol.now/m.vol * 100) - 100
-    
-    output$volumeGauge = renderGauge({
-      gauge(vol.compare,
-            min = -100,
-            max = 100,
-            sectors = gaugeSectors(
-              success = c(20, 100),
-              warning = c(-20, 20),
-              danger = c(-100, -20)))
-    })
+    support_check = possibly_riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
+    if(length(support_check) == 1){
+      print("erroring coin, not supported")
+      shinyalert("Error",
+                 "This coin is not supported for automation. Please select another!",
+                 type = 'error')
+    }else if(length(binance_support_check(input$checkGroupBinance)) == 1){
+      shinyalert("Error",
+                 "This coin is not supported for automation. Please select another!",
+                 type = 'error')
+    }else{
+      vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
+      vol1 = vol1[-1,]
+      vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
+      
+      vol = rbind(vol2, vol1)
+      vol = vol[nrow(vol)-25:nrow(vol),]
+      m.vol = mean(vol$volume)
+      vol.now = vol$volume[(nrow(vol)-1)]
+      
+      vol.compare = (vol.now/m.vol * 100) - 100
+      
+      output$volumeGauge = renderGauge({
+        gauge(vol.compare,
+              min = -100,
+              max = 100,
+              sectors = gaugeSectors(
+                success = c(20, 100),
+                warning = c(-20, 20),
+                danger = c(-100, -20)))
+      })
+    }
   })
   
   
@@ -837,7 +853,7 @@ server <- function(input, output, session) {
                    Confidence = input$confidenceThresholdAutomation,
                    Percentage = input$sliderBalanceUsed,
                    TakeProfit = input$takeProfitBinanceAutomation,
-                   StopLoss = (input$stopLossBinanceAutomation / 100) * input$takeProfitBinanceAutomation,
+                   StopLoss = 0.33 * input$takeProfitBinanceAutomation,
                    Active = TRUE
     )
     saveRDS(x, file = paste0(tempdir(), "/x.rds"))
