@@ -7,14 +7,15 @@ tictoc::tic()
 Sys.setenv(TZ='UTC')
 
 possibly_riingo_prices = possibly(riingo_prices, otherwise = "ERROR")
+possibly_riingo_crypto_prices = possibly(riingo_crypto_prices, otherwise = "ERROR")
 
 ########################################## READ IN NAMES OF COINS WERE INTERESTED IN AND REMOVE BAD COINS
 ########################################## 
-str1 = readRDS('tickers/stock1.rds')
+str1 = readRDS('tickers/str1.rds')
 
-bad_data = which(str1 %in% c("VMT","PEOP"))
-
-str1 = str1[-bad_data]
+# bad_data = which(str1 %in% c("VMT","PEOP"))
+# 
+# str1 = str1[-bad_data]
 # str1 = readRDS('tickers/str1.rds')
 # str1 = str1[-61]
 
@@ -25,11 +26,14 @@ str1 = str1[-bad_data]
 
 ########################################## SET UP LOOPS, ONCE FOR EACH TIMEFRAME
 ########################################## 
-days.back = 700
-for(j in 1:length(str1)){
+days.back = 365
+for(j in 53:length(str1)){
   # GRAB TIINGO DATA
-  df1 = possibly_riingo_prices(ticker = str1[j], resample_frequency = "weekly", end_date = Sys.Date(), start_date = Sys.Date() - days.back)
-  df2 = possibly_riingo_prices(ticker = str1[j], resample_frequency = "weekly", end_date = Sys.Date() - days.back, start_date = Sys.Date() - days.back*2)
+  df1 = possibly_riingo_crypto_prices(ticker = str1[j], resample_frequency = "12hour", end_date = Sys.Date(), start_date = Sys.Date() - days.back)
+  df2 = possibly_riingo_crypto_prices(ticker = str1[j], resample_frequency = "12hour", end_date = Sys.Date() - days.back, start_date = Sys.Date() - days.back*2)
+  if(df1[1] == 'ERROR'){
+    next()
+  }
   if(df2[1] == 'ERROR'){
     df = df1
   }else{
@@ -40,10 +44,10 @@ for(j in 1:length(str1)){
     df = rbind(df2, df1)
   }
   
-  df = df[,-c(1,8:14)]
-  df = df[,c(1,5,3,4,2,6)]
+  df = df[,-c(2,3)]
+  # df = df[,c(1,5,3,4,2,6)]
   # WRITE .CSV
-  write.csv(df, paste0("C:/Users/xbox/Desktop/Rstuff/RiingoPulledData/", str1[j],"_weekly.csv"), row.names = FALSE)
+  write.csv(df, paste0("C:/Users/xbox/Desktop/Rstuff/RiingoPulledData/", str1[j],"_12hour.csv"), row.names = FALSE)
   
   print(j)
 }

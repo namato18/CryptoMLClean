@@ -10,9 +10,9 @@ library(riingo)
 ###############################
 ############################### GET LIST OF ALL DATASETS GATHERED USING TIINGO (COMMENTED BECAUSE NOT LOOPING NOW)
 
-str1 = readRDS("../master.lists/clean.list.rds")
-# stock1 = readRDS("tickers/stock1.rds")
-comb = paste(str1, collapse = "|")
+# str1 = readRDS("../master.lists/clean.list.rds")
+# # stock1 = readRDS("tickers/stock1.rds")
+# comb = paste(str1, collapse = "|")
 # comb.stock = paste(stock1, collapse = "|")
 
 # comb = paste(comb.str, comb.stock,sep="|")
@@ -21,10 +21,14 @@ x = list.files(path = '../RiingoPulledData',full.names = TRUE)
 file.names = list.files('../RiingoPulledData')
 file.names = str_replace(string = file.names, pattern = '\\.csv', replacement = "")
 
-ind = grep(pattern = comb, x = file.names, ignore.case = TRUE)
+# ind = grep(pattern = comb, x = file.names, ignore.case = TRUE)
+# 
+# x = x[ind]
+# file.names = file.names[ind]
 
-x = x[ind]
-file.names = file.names[ind]
+timeframe.ind = grep(pattern = "12hour|30min|45min", x = file.names)
+x = x[timeframe.ind]
+file.names = file.names[timeframe.ind]
 
 ls.files = lapply(x, read.csv)
 
@@ -42,7 +46,8 @@ if(nrow(df) < 30){
 ###############################
 ############################### JUST FILTERING OUT UNECESSARY COLUMNS
 if(grepl(pattern = "USDT", file.names[i])){
-  df = df[,3:8]
+  df = df %>%
+    select("date","open",'high','low','close','volume')
 }
 
 
@@ -162,7 +167,7 @@ test = as.matrix(test)
 
 ###############################
 ############################### SET OUTPUT VALUE
-outcome = CloseGR
+outcome = BreakL
 
 outcome.train = outcome[sample.split]
 outcome.test = outcome[!sample.split]
@@ -176,7 +181,7 @@ bst = xgboost(data = train,
               nrounds = 200,
               eta = 0.3,
               verbose = FALSE)
-saveRDS(bst, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-24-2023/bst_",file.names[i],"CloseGR.rds"))
+saveRDS(bst, file = paste0("E:/bsts-BHBL/bst_",file.names[i],"BreakL.rds"))
 
 ###############################
 ############################### SAVE FOR BACKTESTING
@@ -184,7 +189,7 @@ pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
 
-saveRDS(compare, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-24-2023/compare_",file.names[i],"CloseGR.rds"))
+saveRDS(compare, file = paste0("E:/bsts-BHBL/compare_",file.names[i],"BreakL.rds"))
 
 print(paste0(i," out of ",length(file.names)))
 }

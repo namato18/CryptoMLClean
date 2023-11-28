@@ -1,13 +1,29 @@
 library(httr)
+library(openssl)
+library(jsonlite)
 
 access.key = "mx0vglKvuaMH82ONzF"
 secret.key = "ae761ddd0309456cac6ca8b055c92a4b"
 
+#################################################
+#################################################
+#################################################
+#################################################
+
+MEXC_Spot_Balances <- function(){
 # Generate timestamp in milliseconds
 timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
 
-full.url = paste0("https://api.mexc.com/api/v3/account?timestamp=",timestamp)
+message <- paste0("recvWindow=5000&timestamp=",timestamp)
 
+hash <- sha256(message, key = secret.key)
+
+
+# Create full.url
+# Added timestamp to URL as it's listed as required parameter in docs
+full.url = paste0("https://api.mexc.com/api/v3/account?recvWindow=5000&timestamp=",timestamp,"&signature=",hash)
+
+# Create headers as described in documentation
 headers <- c(
   "X-MEXC-APIKEY" = access.key,
   "Content-Type" = "application/json"
@@ -17,61 +33,55 @@ test_get <- httr::GET(full.url, config = add_headers(headers))
 
 test_get$status_code
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##########################################################
-
-
-url = "https://contract.mexc.com/api/v1/private/position/list/history_positions"
-
-params <- list(
-  page_num = "1",
-  page_size = "20"
-)
-# Sort parameters in dictionary order and create parameter string
-param_string <- paste0(names(params)[order(names(params))], "=", sapply(params[order(names(params))], URLencode), collapse = "&")
-param_string
-
-# body <- toJSON(params)
-
-# Generate timestamp in milliseconds
-timestamp <- as.character(as.numeric(Sys.time()) * 1000)
-
-# Concatenate accessKey + timestamp + obtained parameter string
-message <- paste0(access.key,timestamp, param_string)
-
-# Create HMAC-SHA256 signature
-signature <- sha256(message, key = "HMAC")
-
-
-headers <- c(
-  "Request-Time" = timestamp,
-  "Signature" = signature,
-  "ApiKey" = access.key
-)
-
-url = modify_url(url, query = params)
-
-response <- httr::POST(url, config = httr::add_headers(.headers = headers))
-
-test = rawToChar(response$content)
+test = rawToChar(test_get$content)
 test = fromJSON(test, flatten = TRUE)
-test$message
+x = test$balances
+
+return(x)
+}
+
+
+#################################################
+#################################################
+#################################################
+#################################################
+
+MEXC_Spot_Order <- function(symbol, side, type, quantity){
+  # symbol = 'REEFUSDT'
+  # side = 'BUY'
+  # type = 'MARKET'
+  # quantity = 10
+  # price = 2.9
+  
+  timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
+  if(side == "BUY"){
+    message <- paste0("symbol=",symbol,"&side=",side,"&type=",type,"&quoteOrderQty=",quantity,"&timestamp=",timestamp)
+  }else{
+    message <- paste0("symbol=",symbol,"&side=",side,"&type=",type,"&quantity=",quantity,"&timestamp=",timestamp)
+  }
+  
+  hash <- sha256(message, key = secret.key)
+  
+  
+  # Create full.url
+  # Added timestamp to URL as it's listed as required parameter in docs
+  full.url = paste0("https://api.mexc.com/api/v3/order?",message,"&signature=",hash)
+  
+  # Create headers as described in documentation
+  headers <- c(
+    "X-MEXC-APIKEY" = access.key,
+    "Content-Type" = "application/json"
+  )
+  
+  test_get <- httr::POST(full.url, config = add_headers(headers))
+  
+  test_get$status_code
+  
+  test = rawToChar(test_get$content)
+  test = fromJSON(test, flatten = TRUE)
+  x = test$balances
+}
+
+# x = MEXC_Spot_Balances()
+
+
