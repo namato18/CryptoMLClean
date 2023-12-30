@@ -687,7 +687,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
 predict_week = function(symbol, timeframe){
   # symbol = 'btcusdt'
   # timeframe = 'daily'
-  data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = '6fbd6ce7c9e035489f6238bfab127fcedbe34ac2', periodicity = timeframe))
+  data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = 'bea6df07d69d627087abb23b369b3d0f82e75739', periodicity = timeframe))
   # data = data.frame(getSymbols(symbol, auto.assign = FALSE, periodicity = timeframe))
   data = data[-nrow(data),1:4]
   data = na.omit(data)

@@ -809,12 +809,12 @@ server <- function(input, output, session) {
   
   observeEvent(input$checkGroupBinance, {
     support_check = possibly_riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
-    if(length(support_check) == 1){
+    if(length(support_check) == 1 & input$tabs == "automation"){
       print("erroring coin, not supported")
       shinyalert("Error",
                  "This coin is not supported for automation. Please select another!",
                  type = 'error')
-    }else if(length(binance_support_check(input$checkGroupBinance)) == 1){
+    }else if(length(binance_support_check(input$checkGroupBinance)) == 1 & input$tabs == "automation"){
       shinyalert("Error",
                  "This coin is not supported for automation. Please select another!",
                  type = 'error')
