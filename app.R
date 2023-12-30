@@ -933,6 +933,12 @@ server <- function(input, output, session) {
     #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
     # )
     row.selected = input$activeAutomationInfo_rows_selected
+    if(is.null(row.selected)){
+      shinyalert("Error",
+                 "There is no coin selected!",
+                 type = 'error')
+      return()
+    }
     coin.selected = df.coins.running$Coins[row.selected]
     print(row.selected)
     print(coin.selected)
